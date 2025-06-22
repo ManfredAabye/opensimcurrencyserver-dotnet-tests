@@ -12,3 +12,7 @@ To activate the API, both settings must be set:
      ; # Both values must be set and must match the credentials sent by your external scripts or web clients.
      ApiKey = 123456789
      AllowedUser = myadminuser
+
+moneyserver_api.php funktioniert noch nicht vollständig, aber gibt schon Daten aus und meldet brav Fehler. 
+
+moneyserver_api.php is not yet fully functional, but it is already outputting data and reporting errors.
