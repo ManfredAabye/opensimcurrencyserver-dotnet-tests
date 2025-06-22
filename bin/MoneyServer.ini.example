@@ -12,13 +12,15 @@ pooling  = "true"                ; Enable connection pooling (true/false).
 port = "3306"                    ; MySQL server port (default: 3306).
 MaxConnection = "25"             ; Maximum number of connections in the pool.
 
-[JsonApi]
-ApiKey = 123456789
-AllowedUser = myadminuser
-
 [MoneyServer]
 ; Port number on which the MoneyServer listens.
 ServerPort = 8008
+
+; # ApiKey is the secret key required for API access to the MoneyServer.
+; # AllowedUser specifies the authorized username for API requests.
+; # Both values must be set and must match the credentials sent by your external scripts or web clients.
+;ApiKey = 123456789
+;AllowedUser = myadminuser
 
 ; Enable or disable the currency system ("on" to enable, "off" to disable).
 CurrencyOnOff = on
