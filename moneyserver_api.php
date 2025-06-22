@@ -1,4 +1,11 @@
 <?php
+// UTF-8 für Sonderzeichen (z.B. Emojis)
+header('Content-Type: text/html; charset=utf-8');
+
+// Fehlerausgabe aktivieren
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+
 $url = 'http://localhost:8008/api/json'; // ggf. anpassen
 $apiKey = '123456789';
 $allowedUser = 'myadminuser';
@@ -21,21 +28,34 @@ function sendRequest($data)
     ];
 
     $context = stream_context_create($options);
-    $result = file_get_contents($url, false, $context);
+    $result = @file_get_contents($url, false, $context);
+
+    echo "<div style='margin-bottom:1em;border-bottom:1px solid #ccc;'>";
+    echo "<b>➡️ Aktion:</b> <code>{$data['action']}</code><br>";
 
     if ($result === FALSE) {
-        echo "❌ Fehler beim Zugriff auf die API!\n";
+        // Fehlerausgabe im Browser
+        echo "<span style='color:red;'>❌ Fehler beim Zugriff auf die API!</span><br>";
+        // HTTP-Header anzeigen, falls vorhanden
+        global $http_response_header;
+        if (isset($http_response_header)) {
+            echo "<b>HTTP-Header:</b> <pre>" . htmlspecialchars(implode("\n", $http_response_header)) . "</pre>";
+        }
+        $error = error_get_last();
+        if ($error) {
+            echo "<b>Fehlertext:</b> <pre>" . htmlspecialchars($error['message']) . "</pre>";
+        }
+        echo "</div>";
         return;
     }
 
     $response = json_decode($result, true);
-    echo "➡️ Aktion: {$data['action']}\n";
-    echo "Antwort:\n";
-    print_r($response);
-    echo str_repeat("=", 50) . "\n\n";
+    echo "<b>Antwort:</b><br>";
+    echo "<pre>" . htmlspecialchars(print_r($response, true)) . "</pre>";
+    echo "</div>";
 }
 
-// Liste aller Aktionen testen
+// Aktionen testen
 sendRequest(['action' => 'getbalance', 'userID' => $userID]);
 sendRequest(['action' => 'getTransactionNum', 'userID' => $userID, 'startTime' => 0, 'endTime' => time()]);
 sendRequest(['action' => 'UserExists', 'userID' => $userID]);
@@ -98,7 +118,6 @@ sendRequest([
     'lastIndex' => 0
 ]);
 
-// Beispiel für TryAddUserInfo
 sendRequest([
     'action' => 'TryAddUserInfo',
     'user' => [
@@ -110,7 +129,6 @@ sendRequest([
     ]
 ]);
 
-// Beispiel für UpdateUserInfo
 sendRequest([
     'action' => 'UpdateUserInfo',
     'userID' => $userID,
@@ -122,5 +140,4 @@ sendRequest([
         'Type' => 1
     ]
 ]);
-
 ?>
