@@ -1201,5 +1201,39 @@ namespace OpenSim.Grid.MoneyServer
 
         }
 
+        public bool withdrawMoney(Guid transactionID, string userID, int amount)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool giveMoney(Guid transactionID, string receiverID, int amount)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool BuyMoney(Guid transactionID, string userID, int amount)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool updateTransactionStatus(Guid transactionID, int status, string description)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool ValidateTransfer(string secureCode, Guid transactionID)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool DoTransfer(Guid transactionID)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool DoAddMoney(Guid transactionID)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

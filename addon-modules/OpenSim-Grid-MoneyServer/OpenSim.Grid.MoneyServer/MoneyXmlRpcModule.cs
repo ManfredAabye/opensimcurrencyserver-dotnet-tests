@@ -104,18 +104,29 @@ Das Modul ist für produktiven Einsatz gut vorbereitet. Zusätzliche defensive C
  */
 
 using log4net;
+
 using MySql.Data.MySqlClient;
+
 using Nini.Config;
+
 using NSL.Certificate.Tools;
 using NSL.Network.XmlRpc;
+
 using Nwc.XmlRpc;
+
 using OpenMetaverse;
+using OpenMetaverse.ImportExport.Collada14;
+
 using OpenSim.Data.MySQL.MySQLMoneyDataWrapper;
 using OpenSim.Framework;
+using OpenSim.Framework.Console;
 using OpenSim.Framework.Servers.HttpServer;
+using OpenSim.Grid.MoneyServer;
 using OpenSim.Modules.Currency;
 using OpenSim.Region.Framework.Scenes;
+using OpenSim.Server.Base;
 using OpenSim.Services.Interfaces;
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -125,13 +136,14 @@ using System.Net;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Transactions;
 using System.Xml;
+
 using static Mono.Security.X509.X520;
 using static OpenMetaverse.DllmapConfigHelper;
-using OpenSim.Server.Base;
-using OpenSim.Framework.Console;
+using static System.Collections.Specialized.BitVector32;
 
 
 namespace OpenSim.Grid.MoneyServer
@@ -141,6 +153,8 @@ namespace OpenSim.Grid.MoneyServer
         // ##################     Initial          ##################
         #region Setup Initial
         private static readonly ILog m_log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+
+
 
         private int m_realMoney = 1000; // Beispielwert oder aus der MoneyServer.ini geladen
         private int m_gameMoney = 10000; // Beispielwert oder aus der MoneyServer.ini geladen
@@ -172,6 +186,10 @@ namespace OpenSim.Grid.MoneyServer
         private bool m_scriptSendMoney = false;
         private string m_scriptAccessKey = "";
         private string m_scriptIPaddress = "127.0.0.1";
+
+        // PHP settings
+        private string m_scriptApiKey = "";       // API Key aus der INI
+        private string m_scriptAllowedUser = "";  // AllowedUser aus der INI
 
         // HG settings
         private bool m_hg_enable = false;
@@ -297,6 +315,9 @@ namespace OpenSim.Grid.MoneyServer
             m_scriptAccessKey = m_server_config.GetString("MoneyScriptAccessKey", m_scriptAccessKey);
             m_scriptIPaddress = m_server_config.GetString("MoneyScriptIPaddress", m_scriptIPaddress);
 
+            m_scriptApiKey = m_server_config.GetString("ApiKey", m_scriptApiKey); // New feature
+            m_scriptAllowedUser = m_server_config.GetString("AllowedUser", m_scriptAllowedUser); // New feature
+
             m_CalculateCurrency = m_server_config.GetInt("CalculateCurrency", m_CalculateCurrency); // New feature
             m_DebugConsole = m_server_config.GetBoolean("DebugConsole", m_DebugConsole); // New feature
             m_DebugFile = m_server_config.GetBoolean("m_DebugFile", m_DebugFile); // New feature
@@ -391,6 +412,16 @@ namespace OpenSim.Grid.MoneyServer
 
             m_log.Info("[MONEY XMLRPC]: Registering landtool.php handlers.");
             m_httpServer.AddSimpleStreamHandler(new LandtoolStreamHandler("/landtool.php", LandtoolProcessPHP));
+
+            if (!string.IsNullOrWhiteSpace(m_scriptApiKey) && !string.IsNullOrWhiteSpace(m_scriptAllowedUser))
+            {
+                m_httpServer.AddSimpleStreamHandler(new JsonStreamHandler("/api/json", JsonApiProcess));
+                m_log.Info("[MONEY XMLRPC]: JSON API handler registered (/api/json).");
+            }
+            else
+            {
+                m_log.Info("[MONEY XMLRPC]: JSON API handler NOT registered, missing ApiKey or AllowedUser!");
+            }
 
             m_log.InfoFormat("[MONEY MODULE]: Registered /currency.php and /landtool.php handlers on Port: {0}", m_httpServer.Port);
         }
@@ -1617,6 +1648,196 @@ namespace OpenSim.Grid.MoneyServer
         // ##################     handler         ##################
         #region handler
 
+        // JSON API Verarbeitung
+
+        private void JsonApiProcess(IOSHttpRequest httpRequest, IOSHttpResponse httpResponse)
+        {
+            try
+            {
+                string body;
+                using (var reader = new StreamReader(httpRequest.InputStream, Encoding.UTF8))
+                    body = reader.ReadToEnd();
+
+                var json = JsonDocument.Parse(body).RootElement;
+                string apiKeyFromRequest = json.TryGetProperty("apiKey", out var keyProp) ? keyProp.GetString() : "";
+                string allowedUserFromRequest = json.TryGetProperty("allowedUser", out var userProp) ? userProp.GetString() : "";
+
+                if (string.IsNullOrWhiteSpace(m_scriptApiKey) ||
+                    string.IsNullOrWhiteSpace(m_scriptAllowedUser) ||
+                    apiKeyFromRequest != m_scriptApiKey ||
+                    allowedUserFromRequest != m_scriptAllowedUser)
+                {
+                    httpResponse.StatusCode = 401;
+                    httpResponse.RawBuffer = Encoding.UTF8.GetBytes("{\"error\":\"Unauthorized\"}");
+                    httpResponse.ContentType = "application/json";
+                    return;
+                }
+
+                string action = json.TryGetProperty("action", out var actionProp) ? actionProp.GetString() : null;
+                string userID = json.TryGetProperty("userID", out var userProp2) ? userProp2.GetString() : null;
+
+                if (string.IsNullOrWhiteSpace(action) || string.IsNullOrWhiteSpace(userID))
+                {
+                    httpResponse.StatusCode = 400;
+                    httpResponse.RawBuffer = Encoding.UTF8.GetBytes("{\"error\":\"Missing action or userID\"}");
+                    httpResponse.ContentType = "application/json";
+                    return;
+                }
+
+                if (action == "getbalance")
+                {
+                    int balance = m_moneyDBService.getBalance(userID);
+                    httpResponse.StatusCode = 200;
+                    httpResponse.RawBuffer = Encoding.UTF8.GetBytes($"{{\"success\":true,\"balance\":{balance}}}");
+                }
+                else if (action == "withdrawMoney")
+                {
+                    var transactionID = Guid.Parse(json.GetProperty("transactionID").GetString());
+                    int amount = json.GetProperty("amount").GetInt32();
+                    bool success = m_moneyDBService.withdrawMoney(transactionID, userID, amount);
+                    httpResponse.StatusCode = success ? 200 : 400;
+                    httpResponse.RawBuffer = Encoding.UTF8.GetBytes($"{{\"success\":{success.ToString().ToLower()}}}");
+                }
+                else if (action == "giveMoney")
+                {
+                    var transactionID = Guid.Parse(json.GetProperty("transactionID").GetString());
+                    string receiverID = json.GetProperty("receiverID").GetString();
+                    int amount = json.GetProperty("amount").GetInt32();
+                    bool success = m_moneyDBService.giveMoney(transactionID, receiverID, amount);
+                    httpResponse.StatusCode = success ? 200 : 400;
+                    httpResponse.RawBuffer = Encoding.UTF8.GetBytes($"{{\"success\":{success.ToString().ToLower()}}}");
+                }
+                else if (action == "BuyMoney")
+                {
+                    var transactionID = Guid.Parse(json.GetProperty("transactionID").GetString());
+                    int amount = json.GetProperty("amount").GetInt32();
+                    bool success = m_moneyDBService.BuyMoney(transactionID, userID, amount);
+                    httpResponse.StatusCode = success ? 200 : 400;
+                    httpResponse.RawBuffer = Encoding.UTF8.GetBytes($"{{\"success\":{success.ToString().ToLower()}}}");
+                }
+                else if (action == "BuyCurrency")
+                {
+                    int amount = json.GetProperty("amount").GetInt32();
+                    bool success = m_moneyDBService.BuyCurrency(userID, amount);
+                    httpResponse.StatusCode = success ? 200 : 400;
+                    httpResponse.RawBuffer = Encoding.UTF8.GetBytes($"{{\"success\":{success.ToString().ToLower()}}}");
+                }
+                else if (action == "addTransaction")
+                {
+                    var transaction = JsonSerializer.Deserialize<TransactionData>(json.GetProperty("transaction").GetRawText());
+                    bool success = m_moneyDBService.addTransaction(transaction);
+                    httpResponse.StatusCode = success ? 200 : 400;
+                    httpResponse.RawBuffer = Encoding.UTF8.GetBytes($"{{\"success\":{success.ToString().ToLower()}}}");
+                }
+                else if (action == "addUser")
+                {
+                    int balance = json.GetProperty("balance").GetInt32();
+                    int status = json.GetProperty("status").GetInt32();
+                    int type = json.GetProperty("type").GetInt32();
+                    bool success = m_moneyDBService.addUser(userID, balance, status, type);
+                    httpResponse.StatusCode = success ? 200 : 400;
+                    httpResponse.RawBuffer = Encoding.UTF8.GetBytes($"{{\"success\":{success.ToString().ToLower()}}}");
+                }
+                else if (action == "updateTransactionStatus")
+                {
+                    var transactionID = Guid.Parse(json.GetProperty("transactionID").GetString());
+                    int status = json.GetProperty("status").GetInt32();
+                    string description = json.GetProperty("description").GetString();
+                    bool success = m_moneyDBService.updateTransactionStatus(transactionID, status, description);
+                    httpResponse.StatusCode = success ? 200 : 400;
+                    httpResponse.RawBuffer = Encoding.UTF8.GetBytes($"{{\"success\":{success.ToString().ToLower()}}}");
+                }
+                else if (action == "SetTransExpired")
+                {
+                    int deadTime = json.GetProperty("deadTime").GetInt32();
+                    bool success = m_moneyDBService.SetTransExpired(deadTime);
+                    httpResponse.StatusCode = success ? 200 : 400;
+                    httpResponse.RawBuffer = Encoding.UTF8.GetBytes($"{{\"success\":{success.ToString().ToLower()}}}");
+                }
+                else if (action == "ValidateTransfer")
+                {
+                    string secureCode = json.GetProperty("secureCode").GetString();
+                    var transactionID = Guid.Parse(json.GetProperty("transactionID").GetString());
+                    bool success = m_moneyDBService.ValidateTransfer(secureCode, transactionID);
+                    httpResponse.StatusCode = success ? 200 : 400;
+                    httpResponse.RawBuffer = Encoding.UTF8.GetBytes($"{{\"success\":{success.ToString().ToLower()}}}");
+                }
+                else if (action == "getTransactionNum")
+                {
+                    int startTime = json.GetProperty("startTime").GetInt32();
+                    int endTime = json.GetProperty("endTime").GetInt32();
+                    int count = m_moneyDBService.getTransactionNum(userID, startTime, endTime);
+                    httpResponse.StatusCode = 200;
+                    httpResponse.RawBuffer = Encoding.UTF8.GetBytes($"{{\"success\":true,\"count\":{count}}}");
+                }
+                else if (action == "DoTransfer")
+                {
+                    var transactionID = Guid.Parse(json.GetProperty("transactionID").GetString());
+                    bool success = m_moneyDBService.DoTransfer(transactionID);
+                    httpResponse.StatusCode = success ? 200 : 400;
+                    httpResponse.RawBuffer = Encoding.UTF8.GetBytes($"{{\"success\":{success.ToString().ToLower()}}}");
+                }
+                else if (action == "DoAddMoney")
+                {
+                    var transactionID = Guid.Parse(json.GetProperty("transactionID").GetString());
+                    bool success = m_moneyDBService.DoAddMoney(transactionID);
+                    httpResponse.StatusCode = success ? 200 : 400;
+                    httpResponse.RawBuffer = Encoding.UTF8.GetBytes($"{{\"success\":{success.ToString().ToLower()}}}");
+                }
+                else if (action == "TryAddUserInfo")
+                {
+                    var user = JsonSerializer.Deserialize<UserInfo>(json.GetProperty("user").GetRawText());
+                    bool success = m_moneyDBService.TryAddUserInfo(user);
+                    httpResponse.StatusCode = success ? 200 : 400;
+                    httpResponse.RawBuffer = Encoding.UTF8.GetBytes($"{{\"success\":{success.ToString().ToLower()}}}");
+                }
+                else if (action == "FetchTransaction")
+                {
+                    int startTime = json.GetProperty("startTime").GetInt32();
+                    int endTime = json.GetProperty("endTime").GetInt32();
+                    int lastIndex = json.GetProperty("lastIndex").GetInt32();
+                    var transactions = m_moneyDBService.FetchTransaction(userID, startTime, endTime, lastIndex);
+                    string responseJson = JsonSerializer.Serialize(transactions);
+                    httpResponse.StatusCode = 200;
+                    httpResponse.RawBuffer = Encoding.UTF8.GetBytes(responseJson);
+                }
+                else if (action == "FetchUserInfo")
+                {
+                    var userInfo = m_moneyDBService.FetchUserInfo(userID);
+                    string responseJson = JsonSerializer.Serialize(userInfo);
+                    httpResponse.StatusCode = 200;
+                    httpResponse.RawBuffer = Encoding.UTF8.GetBytes(responseJson);
+                }
+                else if (action == "UserExists")
+                {
+                    bool exists = m_moneyDBService.UserExists(userID);
+                    httpResponse.StatusCode = 200;
+                    httpResponse.RawBuffer = Encoding.UTF8.GetBytes($"{{\"exists\":{exists.ToString().ToLower()}}}");
+                }
+                else if (action == "UpdateUserInfo")
+                {
+                    var updatedInfo = JsonSerializer.Deserialize<UserInfo>(json.GetProperty("user").GetRawText());
+                    bool success = m_moneyDBService.UpdateUserInfo(userID, updatedInfo);
+                    httpResponse.StatusCode = success ? 200 : 400;
+                    httpResponse.RawBuffer = Encoding.UTF8.GetBytes($"{{\"success\":{success.ToString().ToLower()}}}");
+                }
+                else
+                {
+                    httpResponse.StatusCode = 400;
+                    httpResponse.RawBuffer = Encoding.UTF8.GetBytes("{\"error\":\"Invalid action\"}");
+                }
+
+                httpResponse.ContentType = "application/json";
+            }
+            catch (Exception ex)
+            {
+                httpResponse.StatusCode = 500;
+                httpResponse.RawBuffer = Encoding.UTF8.GetBytes("{\"error\":\"" + ex.Message + "\"}");
+                httpResponse.ContentType = "application/json";
+            }
+        }
+
+
         // Spezifische Handler BalanceUpdateHandler: Verarbeitet Updates zum Kontostand.
         public XmlRpcResponse BalanceUpdateHandler(XmlRpcRequest request, IPEndPoint client)
         {
@@ -1651,6 +1872,41 @@ namespace OpenSim.Grid.MoneyServer
                 m_log.ErrorFormat("[MONEY XMLRPC]: BalanceUpdateHandler: Exception occurred: {0}", ex.Message);
                 return new XmlRpcResponse();
             }
+        }
+
+        public List<CashbookTransactionData> GetTransactions(string userID)
+        {
+            List<CashbookTransactionData> result = new List<CashbookTransactionData>();
+            string query = "SELECT receiver, amount, senderBalance, receiverBalance, objectName, commonName, description FROM transactions WHERE sender = ?userID OR receiver = ?userID";
+            var dbm = ((MoneyDBService)m_moneyDBService).GetLockedConnection();
+            try
+            {
+                using (var cmd = new MySql.Data.MySqlClient.MySqlCommand(query, dbm.Manager.dbcon))
+                {
+                    cmd.Parameters.AddWithValue("?userID", userID);
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            result.Add(new CashbookTransactionData
+                            {
+                                Receiver = reader.GetString("receiver"),
+                                Amount = reader.GetInt32("amount"),
+                                SenderBalance = reader.GetInt32("senderBalance"),
+                                ReceiverBalance = reader.GetInt32("receiverBalance"),
+                                ObjectName = reader.GetString("objectName"),
+                                CommonName = reader.GetString("commonName"),
+                                Description = reader.GetString("description")
+                            });
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                dbm.Release();
+            }
+            return result;
         }
 
         // Spezifische Handler UserAlertHandler: Handhabt Benutzerbenachrichtigungen.
@@ -3812,6 +4068,14 @@ namespace OpenSim.Grid.MoneyServer
 }
 // ##################     classes                ##################
 #region classes
+
+public class JsonStreamHandler : CustomSimpleStreamHandler
+{
+    public JsonStreamHandler(string path, Action<IOSHttpRequest, IOSHttpResponse> processAction)
+        : base(path, processAction)
+    {
+    }
+}
 
 public class CashbookTotalSalesData
 {

@@ -159,5 +159,12 @@ namespace OpenSim.Grid.MoneyServer
         /// <param name="endTime">Die Endzeit.</param>
         IEnumerable<TransactionData> GetTransactionHistory(string userID, int startTime, int endTime);
         MySQLSuperManager GetLockedConnection();
+        bool withdrawMoney(Guid transactionID, string userID, int amount);
+        bool giveMoney(Guid transactionID, string receiverID, int amount);
+        bool BuyMoney(Guid transactionID, string userID, int amount);
+        bool updateTransactionStatus(Guid transactionID, int status, string description);
+        bool ValidateTransfer(string secureCode, Guid transactionID);
+        bool DoTransfer(Guid transactionID);
+        bool DoAddMoney(Guid transactionID);
     }
 }
