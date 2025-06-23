@@ -61,6 +61,32 @@ sendRequest(['action' => 'getTransactionNum', 'userID' => $userID, 'startTime' =
 sendRequest(['action' => 'UserExists', 'userID' => $userID]);
 
 sendRequest([
+    'action' => 'withdrawMoney',
+    'userID' => $userID,
+    'transactionID' => '00000000-0000-0000-0000-000000000000',
+    'amount' => 100
+]);
+sendRequest([
+    'action' => 'giveMoney',
+    'transactionID' => '00000000-0000-0000-0000-000000000000',
+    'receiverID' => 'some-receiver-id',
+    'amount' => 50
+]);
+sendRequest([
+    'action' => 'BuyMoney',
+    'transactionID' => '00000000-0000-0000-0000-000000000000',
+    'amount' => 75
+]);
+sendRequest([
+    'action' => 'addTransaction',
+    'transaction' => [
+        'TransactionID' => '00000000-0000-0000-0000-000000000000',
+        'UserID' => $userID,
+        // weitere Felder je nach Definition
+    ]
+]);
+
+sendRequest([
     'action' => 'addUser',
     'userID' => $userID,
     'balance' => 1000,
