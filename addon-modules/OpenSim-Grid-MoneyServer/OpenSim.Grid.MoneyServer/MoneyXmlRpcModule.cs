@@ -2035,7 +2035,7 @@ namespace OpenSim.Grid.MoneyServer
                             return;
                         }
                         int num = m_moneyDBService.getTransactionNum(userID, stT, enT);
-                        SetJsonResponse(httpResponse, 200, new { success = true, num });
+                        SetJsonResponse(httpResponse, 200, new { success = true, num }); // Feldname: num
                         break;
 
                     case "UserExists":
@@ -2045,7 +2045,7 @@ namespace OpenSim.Grid.MoneyServer
                             return;
                         }
                         bool exists = m_moneyDBService.UserExists(userID);
-                        SetJsonResponse(httpResponse, 200, new { exists });
+                        SetJsonResponse(httpResponse, 200, new { exists = exists });
                         break;
 
                     case "withdrawMoney":
@@ -2058,6 +2058,11 @@ namespace OpenSim.Grid.MoneyServer
                         }
                         try
                         {
+                            if (!m_moneyDBService.UserExists(userID))
+                            {
+                                SetJsonResponse(httpResponse, 404, new { success = false, error = "User not found" });
+                                return;
+                            }
                             bool wSuccess = m_moneyDBService.withdrawMoney(withdrawTid, userID, withdrawAmount);
                             SetJsonResponse(httpResponse, wSuccess ? 200 : 400, new { success = wSuccess });
                         }
@@ -2113,7 +2118,8 @@ namespace OpenSim.Grid.MoneyServer
                         }
                         try
                         {
-                            bool tSuccess = m_moneyDBService.addTransaction(JsonSerializer.Deserialize<TransactionData>(transactionElement.GetRawText()));
+                            var transactionObj = JsonSerializer.Deserialize<TransactionData>(transactionElement.GetRawText());
+                            bool tSuccess = m_moneyDBService.addTransaction(transactionObj);
                             SetJsonResponse(httpResponse, tSuccess ? 200 : 400, new { success = tSuccess });
                         }
                         catch (Exception ex)
@@ -2187,7 +2193,7 @@ namespace OpenSim.Grid.MoneyServer
                         try
                         {
                             bool valid = m_moneyDBService.ValidateTransfer(secureCode, valTid);
-                            SetJsonResponse(httpResponse, 200, new { valid });
+                            SetJsonResponse(httpResponse, 200, new { valid = valid });
                         }
                         catch (Exception ex)
                         {
@@ -2204,11 +2210,9 @@ namespace OpenSim.Grid.MoneyServer
                         var userInfo = m_moneyDBService.FetchUserInfo(userID);
                         if (userInfo != null)
                         {
-                            // Beide Schreibweisen für Kompatibilität!
                             SetJsonResponse(httpResponse, 200, new
                             {
-                                UserID = userInfo.UserID,
-                                userID = userInfo.UserID,
+                                userID = userInfo.UserID, // Nur EIN Feld!
                                 SimIP = userInfo.SimIP,
                                 Avatar = userInfo.Avatar,
                                 PswHash = userInfo.PswHash,
@@ -2289,7 +2293,6 @@ namespace OpenSim.Grid.MoneyServer
                         var transaction = m_moneyDBService.FetchTransaction(userID, ftStartTime, ftEndTime, lastIndex);
                         if (transaction != null)
                         {
-                            // Immer ein Feld "transactions" zurückgeben (wie vom Test erwartet)
                             SetJsonResponse(httpResponse, 200, new { transactions = new[] { transaction } });
                         }
                         else
