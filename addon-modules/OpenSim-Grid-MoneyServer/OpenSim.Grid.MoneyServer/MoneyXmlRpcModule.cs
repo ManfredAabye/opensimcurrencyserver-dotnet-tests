@@ -146,113 +146,204 @@ using static OpenMetaverse.DllmapConfigHelper;
 using static System.Collections.Specialized.BitVector32;
 
 
+//namespace OpenSim.Grid.MoneyServer
+//{
+//    class MoneyXmlRpcModule : MoneyDBService, IMoneyDBService
+//    {
+//        // ##################     Initial          ##################
+//        #region Setup Initial
+//        private static readonly ILog m_log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+
+//        private int m_realMoney = 1000; // Beispielwert oder aus der MoneyServer.ini geladen
+//        private int m_gameMoney = 10000; // Beispielwert oder aus der MoneyServer.ini geladen
+
+//        // MoneyServer settings
+//        public int m_defaultBalance = 1000;
+
+//        private bool m_forceTransfer = false;
+//        private string m_bankerAvatar = "";
+
+//        // Testbereich
+//        // Maximum pro Tag:
+//        public int m_TotalDay = 100;
+//        // Maximum pro Woche:
+//        public int m_TotalWeek = 250;
+//        // Maximum pro Monat:
+//        public int m_TotalMonth = 500;
+//        // Maximum Besitz:
+//        public int m_CurrencyMaximum;
+//        // Geldkauf abschalten:
+//        public string m_CurrencyOnOff;
+//        // Geldkauf nur für Gruppe:
+//        public bool m_CurrencyGroupOnly = false;
+//        public bool m_UserMailLock = false;
+//        public string m_CurrencyGroupName = "";
+//        public string m_CurrencyGroupID = "";
+
+//        // Script settings
+//        private bool m_scriptSendMoney = false;
+//        private string m_scriptAccessKey = "";
+//        private string m_scriptIPaddress = "127.0.0.1";
+
+//        // PHP settings
+//        private string m_scriptApiKey = "";       // API Key aus der INI
+//        private string m_scriptAllowedUser = "";  // AllowedUser aus der INI
+
+//        // HG settings
+//        private bool m_hg_enable = false;
+//        private bool m_gst_enable = false;
+//        private int m_hg_defaultBalance = 0;
+//        private int m_gst_defaultBalance = 0;
+//        private int m_CalculateCurrency = 0;
+
+//        // XMLRPC Debug settings
+//        private bool m_DebugConsole = false;
+//        private bool m_DebugFile = false;
+
+//        // Certificate settings
+//        private bool m_checkServerCert = false;
+//        private string m_cacertFilename = "";
+//        private string m_certFilename = "";
+//        private string m_certPassword = "";
+
+
+
+//        // SSL settings
+//        private string m_sslCommonName = "";
+
+//        private Dictionary<ulong, Scene> m_scenes = new Dictionary<ulong, Scene>();
+
+//        private NSLCertificateVerify m_certVerify = new NSLCertificateVerify();
+
+//        private string m_BalanceMessageLandSale = "Paid the Money L${0} for Land.";
+//        private string m_BalanceMessageRcvLandSale = "";
+//        private string m_BalanceMessageSendGift = "Sent Gift L${0} to {1}.";
+//        private string m_BalanceMessageReceiveGift = "Received Gift L${0} from {1}.";
+//        private string m_BalanceMessagePayCharge = "";
+//        private string m_BalanceMessageBuyObject = "Bought the Object {2} from {1} by L${0}.";
+//        private string m_BalanceMessageSellObject = "{1} bought the Object {2} by L${0}.";
+//        private string m_BalanceMessageGetMoney = "Got the Money L${0} from {1}.";
+//        private string m_BalanceMessageBuyMoney = "Bought the Money L${0}.";
+//        private string m_BalanceMessageRollBack = "RollBack the Transaction: L${0} from/to {1}.";
+//        private string m_BalanceMessageSendMoney = "Paid the Money L${0} to {1}.";
+//        private string m_BalanceMessageReceiveMoney = "Received L${0} from {1}.";
+
+//        private bool m_enableAmountZero = false;
+
+//        const int MONEYMODULE_REQUEST_TIMEOUT = 30 * 1000;  //30 seconds
+//        private long TicksToEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).Ticks;
+
+//        private IMoneyDBService m_moneyDBService;
+//        // Konfig fuer Konsolenbefehle.
+//        private IConfigSource m_config;
+//        private IMoneyServiceCore m_moneyCore;
+
+//        protected IConfig m_server_config;
+//        protected IConfig m_cert_config;
+
+//        /// <value>
+//        /// Used to notify old regions as to which OpenSim version to upgrade to
+//        /// </value>
+//        //private string m_opensimVersion;
+
+//        private Dictionary<string, string> m_sessionDic;
+//        private Dictionary<string, string> m_secureSessionDic;
+//        private Dictionary<string, string> m_webSessionDic;
+
+//        protected BaseHttpServer m_httpServer;
+
+
 namespace OpenSim.Grid.MoneyServer
 {
     class MoneyXmlRpcModule : MoneyDBService, IMoneyDBService
     {
-        // ##################     Initial          ##################
-        #region Setup Initial
+        #region SetupInitial
+
         private static readonly ILog m_log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
+        // Konfiguration & Dienste
+        private IConfigSource m_config;
+        protected IConfig m_server_config;
+        protected IConfig m_cert_config;
+        private IMoneyServiceCore m_moneyCore;
+        private IMoneyDBService m_moneyDBService;
 
+        // HTTP-Server
+        protected BaseHttpServer m_httpServer;
 
-        private int m_realMoney = 1000; // Beispielwert oder aus der MoneyServer.ini geladen
-        private int m_gameMoney = 10000; // Beispielwert oder aus der MoneyServer.ini geladen
+        // Zertifikatsprüfung & SSL
+        private NSLCertificateVerify m_certVerify = new NSLCertificateVerify();
+        private string m_certFilename = "";
+        private string m_certPassword = "";
+        private string m_cacertFilename = "";
+        private bool m_checkServerCert = false;
+        private string m_sslCommonName = "";
 
-        // MoneyServer settings
+        // Geldsystem-Einstellungen
         public int m_defaultBalance = 1000;
-
-        private bool m_forceTransfer = false;
-        private string m_bankerAvatar = "";
-
-        // Testbereich
-        // Maximum pro Tag:
         public int m_TotalDay = 100;
-        // Maximum pro Woche:
         public int m_TotalWeek = 250;
-        // Maximum pro Monat:
         public int m_TotalMonth = 500;
-        // Maximum Besitz:
-        public int m_CurrencyMaximum;
-        // Geldkauf abschalten:
-        public string m_CurrencyOnOff;
-        // Geldkauf nur für Gruppe:
+        public int m_CurrencyMaximum = 20000;
+        public string m_CurrencyOnOff = "off";
         public bool m_CurrencyGroupOnly = false;
-        public bool m_UserMailLock = false;
         public string m_CurrencyGroupName = "";
         public string m_CurrencyGroupID = "";
+        public int m_CalculateCurrency = 10;
 
-        // Script settings
+        // Bank & Authentifizierung
+        private bool m_UserMailLock = false;
+        private string m_bankerAvatar = "";
+
+        // Scripting-Einstellungen
+        private bool m_enableAmountZero = false;
+        private bool m_forceTransfer = false;
         private bool m_scriptSendMoney = false;
         private string m_scriptAccessKey = "";
         private string m_scriptIPaddress = "127.0.0.1";
 
-        // PHP settings
-        private string m_scriptApiKey = "";       // API Key aus der INI
-        private string m_scriptAllowedUser = "";  // AllowedUser aus der INI
+        // API (JsonApi)
+        private string m_scriptApiKey = "";
+        private string m_scriptAllowedUser = "";
 
-        // HG settings
-        private bool m_hg_enable = false;
-        private bool m_gst_enable = false;
-        private int m_hg_defaultBalance = 0;
-        private int m_gst_defaultBalance = 0;
-        private int m_CalculateCurrency = 0;
+        // Hypergrid-Einstellungen
+        private bool m_hg_enable = true;
+        private bool m_gst_enable = true;
+        private int m_hg_defaultBalance = 500;
+        private int m_gst_defaultBalance = 500;
 
-        // XMLRPC Debug settings
-        private bool m_DebugConsole = false;
-        private bool m_DebugFile = false;
-
-        // Certificate settings
-        private bool m_checkServerCert = false;
-        private string m_cacertFilename = "";
-        private string m_certFilename = "";
-        private string m_certPassword = "";
-
-        
-
-        // SSL settings
-        private string m_sslCommonName = "";
-
-        private Dictionary<ulong, Scene> m_scenes = new Dictionary<ulong, Scene>();
-
-        private NSLCertificateVerify m_certVerify = new NSLCertificateVerify();
-
-        private string m_BalanceMessageLandSale = "Paid the Money L${0} for Land.";
-        private string m_BalanceMessageRcvLandSale = "";
+        // Nachrichten
         private string m_BalanceMessageSendGift = "Sent Gift L${0} to {1}.";
         private string m_BalanceMessageReceiveGift = "Received Gift L${0} from {1}.";
-        private string m_BalanceMessagePayCharge = "";
+        private string m_BalanceMessagePayCharge = "Paid the Money L${0} for creation.";
         private string m_BalanceMessageBuyObject = "Bought the Object {2} from {1} by L${0}.";
         private string m_BalanceMessageSellObject = "{1} bought the Object {2} by L${0}.";
+        private string m_BalanceMessageLandSale = "Paid the Money L${0} for Land.";
+        private string m_BalanceMessageRcvLandSale = "Paid the Money L${0} for Land.";
         private string m_BalanceMessageGetMoney = "Got the Money L${0} from {1}.";
         private string m_BalanceMessageBuyMoney = "Bought the Money L${0}.";
         private string m_BalanceMessageRollBack = "RollBack the Transaction: L${0} from/to {1}.";
         private string m_BalanceMessageSendMoney = "Paid the Money L${0} to {1}.";
         private string m_BalanceMessageReceiveMoney = "Received L${0} from {1}.";
 
-        private bool m_enableAmountZero = false;
+        // Debug & Testwerte
+        private bool m_DebugConsole = false;
+        private bool m_DebugFile = false;
+        private int m_realMoney = 1000;
+        private int m_gameMoney = 10000;
 
-        const int MONEYMODULE_REQUEST_TIMEOUT = 30 * 1000;  //30 seconds
-        private long TicksToEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).Ticks;
-
-        private IMoneyDBService m_moneyDBService;
-        // Konfig fuer Konsolenbefehle.
-        private IConfigSource m_config;
-        private IMoneyServiceCore m_moneyCore;
-
-        protected IConfig m_server_config;
-        protected IConfig m_cert_config;
-
-        /// <value>
-        /// Used to notify old regions as to which OpenSim version to upgrade to
-        /// </value>
-        //private string m_opensimVersion;
-
+        // Szenen & Sitzungen
+        private Dictionary<ulong, Scene> m_scenes = new Dictionary<ulong, Scene>();
         private Dictionary<string, string> m_sessionDic;
         private Dictionary<string, string> m_secureSessionDic;
         private Dictionary<string, string> m_webSessionDic;
 
-        protected BaseHttpServer m_httpServer;
+        // Zeitsteuerung
+        private const int MONEYMODULE_REQUEST_TIMEOUT = 30 * 1000;
+        private readonly long TicksToEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).Ticks;
+
+        //#endregion
+
 
 
         /// <summary>Initializes a new instance of the <see cref="MoneyXmlRpcModule" /> class.</summary>
@@ -479,6 +570,7 @@ namespace OpenSim.Grid.MoneyServer
             // m_httpServer.AddXmlRPCHandler("quote", getCurrencyQuote);
         }
         #endregion
+
         // ##################     Land Buy         ##################
         #region Land Buy
 

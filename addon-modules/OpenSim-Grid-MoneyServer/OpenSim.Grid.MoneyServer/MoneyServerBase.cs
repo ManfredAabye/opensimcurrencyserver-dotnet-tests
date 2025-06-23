@@ -92,55 +92,139 @@ using Timer = System.Timers.Timer;
 /// <summary>
 /// OpenSim Grid MoneyServer
 /// </summary>
+//internal class MoneyServerBase : BaseOpenSimServer, IMoneyServiceCore
+//{
+//    private MoneyDBService dbService;
+
+//    private static readonly ILog m_log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+
+//    private string connectionString = string.Empty;
+//    private uint m_moneyServerPort = 8008;         // 8008 is default server port
+//    private Timer checkTimer;
+
+//    private string m_certFilename = "";
+//    private string m_certPassword = "";
+//    private string m_cacertFilename = "";
+//    private string m_clcrlFilename = "";
+//    private bool m_checkClientCert = false;
+
+//    private int DEAD_TIME = 120;
+//    private int MAX_DB_CONNECTION = 10; // 10 is default
+
+//    // Testbereich
+//    // Maximum pro Tag:
+//    private int m_TotalDay = 100;
+//    // Maximum pro Woche:
+//    private int m_TotalWeek = 250;
+//    // Maximum pro Monat:
+//    private int m_TotalMonth = 500;
+//    // Maximum Besitz:
+//    private int m_CurrencyMaximum = 10000;
+//    // Geldkauf abschalten:
+//    private string m_CurrencyOnOff = "off";
+//    // Geldkauf nur für Gruppe:
+//    private bool m_CurrencyGroupOnly = false;
+//    private string m_CurrencyGroupName = "";
+
+
+//    private MoneyXmlRpcModule m_moneyXmlRpcModule;
+//    private MoneyDBService m_moneyDBService;
+
+//    private NSLCertificateVerify m_certVerify = new NSLCertificateVerify(); // Client Certificate
+
+//    private Dictionary<string, string> m_sessionDic = new Dictionary<string, string>();
+//    private Dictionary<string, string> m_secureSessionDic = new Dictionary<string, string>();
+//    private Dictionary<string, string> m_webSessionDic = new Dictionary<string, string>();
+
+//    IConfig m_server_config;
+//    IConfig m_cert_config;
+
 internal class MoneyServerBase : BaseOpenSimServer, IMoneyServiceCore
 {
-    private MoneyDBService dbService;
-
     private static readonly ILog m_log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
+    // Konfigurationsobjekte
+    IConfig m_server_config;
+    IConfig m_cert_config;
+
+    // Datenbank
+    private MoneyDBService dbService;
+    private MoneyDBService m_moneyDBService;
+    private int MAX_DB_CONNECTION = 10;
     private string connectionString = string.Empty;
-    private uint m_moneyServerPort = 8008;         // 8008 is default server port
+
+    // Serverkonfiguration
+    private uint m_moneyServerPort = 8008;
+    private int DEAD_TIME = 120;
     private Timer checkTimer;
 
+    // Zertifikate & Sicherheit
     private string m_certFilename = "";
     private string m_certPassword = "";
     private string m_cacertFilename = "";
     private string m_clcrlFilename = "";
     private bool m_checkClientCert = false;
+    private NSLCertificateVerify m_certVerify = new NSLCertificateVerify();
 
-    private int DEAD_TIME = 120;
-    private int MAX_DB_CONNECTION = 10; // 10 is default
-
-    // Testbereich
-    // Maximum pro Tag:
-    private int m_TotalDay = 100;
-    // Maximum pro Woche:
-    private int m_TotalWeek = 250;
-    // Maximum pro Monat:
-    private int m_TotalMonth = 500;
-    // Maximum Besitz:
+    // Währungsgrenzen & Limits
+    //private int m_TotalDay = 100;
+    //private int m_TotalWeek = 250;
+    //private int m_TotalMonth = 500;
     private int m_CurrencyMaximum = 10000;
-    // Geldkauf abschalten:
+    private int m_DefaultBalance = 1000;
+    private int m_CalculateCurrency = 10;
     private string m_CurrencyOnOff = "off";
-    // Geldkauf nur für Gruppe:
+
+    // Gruppenzugriff & Sicherheit
     private bool m_CurrencyGroupOnly = false;
-    private string m_CurrencyGroupName = "";
+    //private string m_CurrencyGroupName = "";
+    private string m_CurrencyGroupID = "";
+    private bool m_UserMailLock = false;
+    private string m_BankerAvatar = "";
 
+    // Nachrichten
+    private string m_msgSendGift = "";
+    private string m_msgReceiveGift = "";
+    private string m_msgPayCharge = "";
+    private string m_msgBuyObject = "";
+    private string m_msgSellObject = "";
+    private string m_msgLandSale = "";
+    private string m_msgScvLandSale = "";
+    private string m_msgGetMoney = "";
+    private string m_msgBuyMoney = "";
+    private string m_msgRollBack = "";
+    private string m_msgSendMoney = "";
+    private string m_msgReceiveMoney = "";
 
+    // Hypergrid-Konfiguration
+    private int m_HGDefaultBalance = 500;
+    private int m_GuestDefaultBalance = 500;
+    private bool m_EnableHG = true;
+    private bool m_EnableGuest = true;
+
+    // Scripting-Konfiguration
+    private bool m_EnableAmountZero = false;
+    private bool m_EnableForceTransfer = false;
+    private bool m_EnableScriptSendMoney = false;
+    private string m_ScriptKey = "";
+    private string m_ScriptIP = "";
+
+    // API-Zugriff
+    private string m_ApiKey = "";
+    private string m_AllowedUser = "";
+
+    // Netzwerk
+    private string m_moneyServerIP = "";
+
+    // RPC-Modul & Sitzungen
     private MoneyXmlRpcModule m_moneyXmlRpcModule;
-    private MoneyDBService m_moneyDBService;
-
-    private NSLCertificateVerify m_certVerify = new NSLCertificateVerify(); // Client Certificate
-
     private Dictionary<string, string> m_sessionDic = new Dictionary<string, string>();
     private Dictionary<string, string> m_secureSessionDic = new Dictionary<string, string>();
     private Dictionary<string, string> m_webSessionDic = new Dictionary<string, string>();
 
-    IConfig m_server_config;
-    IConfig m_cert_config;
 
 
-    public MoneyServerBase()
+public MoneyServerBase()
     {
         try
         {
@@ -277,6 +361,120 @@ internal class MoneyServerBase : BaseOpenSimServer, IMoneyServiceCore
         }
     }
 
+    //public void ReadIniConfig()
+    //{
+    //    MoneyServerConfigSource moneyConfig = new MoneyServerConfigSource();
+    //    Config = moneyConfig.m_config;
+
+    //    try
+    //    {
+    //        // [Startup]
+    //        IConfig st_config = moneyConfig.m_config.Configs["Startup"];
+    //        string PIDFile = st_config.GetString("PIDFile", "");
+    //        if (PIDFile != "") Create_PIDFile(PIDFile);
+
+    //        // [MySql]
+    //        IConfig db_config = moneyConfig.m_config.Configs["MySql"];
+    //        string sqlserver = db_config.GetString("hostname", "localhost");
+    //        string database = db_config.GetString("database", "OpenSim");
+    //        string username = db_config.GetString("username", "root");
+    //        string password = db_config.GetString("password", "password");
+    //        string pooling = db_config.GetString("pooling", "false");
+    //        string port = db_config.GetString("port", "3306");
+    //        MAX_DB_CONNECTION = db_config.GetInt("MaxConnection", MAX_DB_CONNECTION);
+
+    //        connectionString = "Server=" + sqlserver + ";Port=" + port + ";Database=" + database + ";User ID=" +
+    //                                    username + ";Password=" + password + ";Pooling=" + pooling + ";";
+
+    //        // [JsonApi]
+
+    //        // [Network]
+
+    //        // [Security]
+
+    //        // [Scripting]
+
+    //        // [Hypergrid]
+
+
+
+    //        // [MoneyServer]
+    //        m_server_config = moneyConfig.m_config.Configs["MoneyServer"];
+    //        DEAD_TIME = m_server_config.GetInt("ExpiredTime", DEAD_TIME);
+    //        m_moneyServerPort = (uint)m_server_config.GetInt("ServerPort", (int)m_moneyServerPort);
+
+    //        // [Messages]
+
+    //        /*
+    //        ; Testbereich
+    //        ; Maximum pro Tag:
+    //        TotalDay = 100;
+    //        ; Maximum pro Woche:
+    //        TotalWeek = 250;
+    //        ; Maximum pro Monat:
+    //        TotalMonth = 500;
+    //        */
+
+    //        m_TotalDay = m_server_config.GetInt("TotalDay", m_TotalDay);
+    //        m_TotalWeek = m_server_config.GetInt("TotalWeek", m_TotalWeek);
+    //        m_TotalMonth = m_server_config.GetInt("TotalMonth", m_TotalMonth);
+    //        m_CurrencyMaximum = m_server_config.GetInt("CurrencyMaximum", m_CurrencyMaximum);
+
+    //        m_CurrencyOnOff = m_server_config.GetString("CurrencyOnOff", m_CurrencyOnOff);
+    //        m_CurrencyGroupOnly = m_server_config.GetBoolean("CurrencyGroupOnly", m_CurrencyGroupOnly);
+    //        m_CurrencyGroupName = m_server_config.GetString("CurrencyGroupName", m_CurrencyGroupName);
+
+
+    //        //
+    //        // [Certificate]
+    //        m_cert_config = moneyConfig.m_config.Configs["Certificate"];
+    //        if (m_cert_config == null)
+    //        {
+    //            m_log.Info("[MONEY SERVER]: [Certificate] section is not found. Using [MoneyServer] section instead");
+    //            m_cert_config = m_server_config;
+    //        }
+
+    //        // HTTPS Server Cert (Server Mode)
+    //        m_certFilename = m_cert_config.GetString("ServerCertFilename", m_certFilename);
+    //        m_certPassword = m_cert_config.GetString("ServerCertPassword", m_certPassword);
+    //        if (m_certFilename != "")
+    //        {
+    //            m_log.Info("[MONEY SERVER]: ReadIniConfig: Execute HTTPS comunication. Server Cert file is " + m_certFilename);
+    //        }
+
+    //        // Client Certificate
+    //        m_checkClientCert = m_cert_config.GetBoolean("CheckClientCert", m_checkClientCert);
+    //        m_cacertFilename = m_cert_config.GetString("CACertFilename", m_cacertFilename);
+    //        m_clcrlFilename = m_cert_config.GetString("ClientCrlFilename", m_clcrlFilename);
+    //        if (m_checkClientCert && (m_cacertFilename != ""))
+    //        {
+    //            m_certVerify.SetPrivateCA(m_cacertFilename);
+    //            m_log.Info("[MONEY SERVER]: ReadIniConfig: Execute Authentication of Clients. CA file is " + m_cacertFilename);
+    //        }
+    //        else
+    //        {
+    //            m_checkClientCert = false;
+    //        }
+    //        if (m_checkClientCert)
+    //        {
+    //            if (m_clcrlFilename != "")
+    //            {
+    //                m_certVerify.SetPrivateCRL(m_clcrlFilename);
+    //                m_log.Info("[MONEY SERVER]: ReadIniConfig: Execute Authentication of Clients. CRL file is " + m_clcrlFilename);
+    //            }
+    //        }
+
+    //        // Initialisiere die MoneyDBService mit der Verbindungszeichenkette und der maxDBConnections
+    //        dbService = new MoneyDBService();
+    //        dbService.Initialise(connectionString, MAX_DB_CONNECTION);
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //        m_log.Error("[MONEY SERVER]: ReadIniConfig: Fail to setup configure. Please check MoneyServer.ini. Exit", ex);
+    //        Environment.Exit(1);
+    //    }
+    //}
+
     public void ReadIniConfig()
     {
         MoneyServerConfigSource moneyConfig = new MoneyServerConfigSource();
@@ -285,12 +483,13 @@ internal class MoneyServerBase : BaseOpenSimServer, IMoneyServiceCore
         try
         {
             // [Startup]
-            IConfig st_config = moneyConfig.m_config.Configs["Startup"];
-            string PIDFile = st_config.GetString("PIDFile", "");
-            if (PIDFile != "") Create_PIDFile(PIDFile);
+            IConfig startup = Config.Configs["Startup"];
+            string PIDFile = startup.GetString("PIDFile", "");
+            if (!string.IsNullOrWhiteSpace(PIDFile))
+                Create_PIDFile(PIDFile);
 
             // [MySql]
-            IConfig db_config = moneyConfig.m_config.Configs["MySql"];
+            IConfig db_config = Config.Configs["MySql"];
             string sqlserver = db_config.GetString("hostname", "localhost");
             string database = db_config.GetString("database", "OpenSim");
             string username = db_config.GetString("username", "root");
@@ -300,82 +499,130 @@ internal class MoneyServerBase : BaseOpenSimServer, IMoneyServiceCore
             MAX_DB_CONNECTION = db_config.GetInt("MaxConnection", MAX_DB_CONNECTION);
 
             connectionString = "Server=" + sqlserver + ";Port=" + port + ";Database=" + database + ";User ID=" +
-                                        username + ";Password=" + password + ";Pooling=" + pooling + ";";
+                               username + ";Password=" + password + ";Pooling=" + pooling + ";";
+
+            // [JsonApi]
+            IConfig jsonApi = Config.Configs["JsonApi"];
+            if (jsonApi != null)
+            {
+                m_ApiKey = jsonApi.GetString("ApiKey", m_ApiKey);
+                m_AllowedUser = jsonApi.GetString("AllowedUser", m_AllowedUser);
+            }
+
+            // [Network]
+            IConfig network = Config.Configs["Network"];
+            if (network != null)
+            {
+                m_moneyServerPort = (uint)network.GetInt("ServerPort", (int)m_moneyServerPort);
+                m_moneyServerIP = network.GetString("MoneyServerIPaddress", m_moneyServerIP);
+            }
+
+            // [Security]
+            IConfig security = Config.Configs["Security"];
+            if (security != null)
+            {
+                m_CurrencyGroupOnly = security.GetBoolean("CurrencyGroupOnly", m_CurrencyGroupOnly);
+                m_CurrencyGroupID = security.GetString("CurrencyGroupID", m_CurrencyGroupID);
+                m_UserMailLock = security.GetBoolean("UserMailLock", m_UserMailLock);
+                m_BankerAvatar = security.GetString("BankerAvatar", m_BankerAvatar);
+            }
+
+            // [Scripting]
+            IConfig scripting = Config.Configs["Scripting"];
+            if (scripting != null)
+            {
+                m_EnableAmountZero = scripting.GetBoolean("EnableAmountZero", m_EnableAmountZero);
+                m_EnableForceTransfer = scripting.GetBoolean("EnableForceTransfer", m_EnableForceTransfer);
+                m_EnableScriptSendMoney = scripting.GetBoolean("EnableScriptSendMoney", m_EnableScriptSendMoney);
+                m_ScriptKey = scripting.GetString("MoneyScriptAccessKey", m_ScriptKey);
+                m_ScriptIP = scripting.GetString("MoneyScriptIPaddress", m_ScriptIP);
+            }
+
+            // [Hypergrid]
+            IConfig hypergrid = Config.Configs["Hypergrid"];
+            if (hypergrid != null)
+            {
+                m_HGDefaultBalance = hypergrid.GetInt("HGAvatarDefaultBalance", m_HGDefaultBalance);
+                m_GuestDefaultBalance = hypergrid.GetInt("GuestAvatarDefaultBalance", m_GuestDefaultBalance);
+                m_EnableHG = hypergrid.GetBoolean("EnableHGAvatar", m_EnableHG);
+                m_EnableGuest = hypergrid.GetBoolean("EnableGuestAvatar", m_EnableGuest);
+            }
 
             // [MoneyServer]
-            m_server_config = moneyConfig.m_config.Configs["MoneyServer"];
-            DEAD_TIME = m_server_config.GetInt("ExpiredTime", DEAD_TIME);
-            m_moneyServerPort = (uint)m_server_config.GetInt("ServerPort", (int)m_moneyServerPort);
-
-            /*
-            ; Testbereich
-            ; Maximum pro Tag:
-            TotalDay = 100;
-            ; Maximum pro Woche:
-            TotalWeek = 250;
-            ; Maximum pro Monat:
-            TotalMonth = 500;
-            */
-
-            m_TotalDay = m_server_config.GetInt("TotalDay", m_TotalDay);
-            m_TotalWeek = m_server_config.GetInt("TotalWeek", m_TotalWeek);
-            m_TotalMonth = m_server_config.GetInt("TotalMonth", m_TotalMonth);
-            m_CurrencyMaximum = m_server_config.GetInt("CurrencyMaximum", m_CurrencyMaximum);
-
+            m_server_config = Config.Configs["MoneyServer"];
             m_CurrencyOnOff = m_server_config.GetString("CurrencyOnOff", m_CurrencyOnOff);
-            m_CurrencyGroupOnly = m_server_config.GetBoolean("CurrencyGroupOnly", m_CurrencyGroupOnly);
-            m_CurrencyGroupName = m_server_config.GetString("CurrencyGroupName", m_CurrencyGroupName);
+            m_CurrencyMaximum = m_server_config.GetInt("CurrencyMaximum", m_CurrencyMaximum);
+            m_DefaultBalance = m_server_config.GetInt("DefaultBalance", m_DefaultBalance);
+            m_CalculateCurrency = m_server_config.GetInt("CalculateCurrency", m_CalculateCurrency);
 
+            // [Messages]
+            IConfig messages = Config.Configs["Messages"];
+            if (messages != null)
+            {
+                m_msgSendGift = messages.GetString("BalanceMessageSendGift", m_msgSendGift);
+                m_msgReceiveGift = messages.GetString("BalanceMessageReceiveGift", m_msgReceiveGift);
+                m_msgPayCharge = messages.GetString("BalanceMessagePayCharge", m_msgPayCharge);
+                m_msgBuyObject = messages.GetString("BalanceMessageBuyObject", m_msgBuyObject);
+                m_msgSellObject = messages.GetString("BalanceMessageSellObject", m_msgSellObject);
+                m_msgLandSale = messages.GetString("BalanceMessageLandSale", m_msgLandSale);
+                m_msgScvLandSale = messages.GetString("BalanceMessageScvLandSale", m_msgScvLandSale);
+                m_msgGetMoney = messages.GetString("BalanceMessageGetMoney", m_msgGetMoney);
+                m_msgBuyMoney = messages.GetString("BalanceMessageBuyMoney", m_msgBuyMoney);
+                m_msgRollBack = messages.GetString("BalanceMessageRollBack", m_msgRollBack);
+                m_msgSendMoney = messages.GetString("BalanceMessageSendMoney", m_msgSendMoney);
+                m_msgReceiveMoney = messages.GetString("BalanceMessageReceiveMoney", m_msgReceiveMoney);
+            }
 
-            //
             // [Certificate]
-            m_cert_config = moneyConfig.m_config.Configs["Certificate"];
+            m_cert_config = Config.Configs["Certificate"];
             if (m_cert_config == null)
             {
                 m_log.Info("[MONEY SERVER]: [Certificate] section is not found. Using [MoneyServer] section instead");
                 m_cert_config = m_server_config;
             }
 
-            // HTTPS Server Cert (Server Mode)
             m_certFilename = m_cert_config.GetString("ServerCertFilename", m_certFilename);
             m_certPassword = m_cert_config.GetString("ServerCertPassword", m_certPassword);
+            m_checkClientCert = m_cert_config.GetBoolean("CheckClientCert", m_checkClientCert);
+            m_cacertFilename = m_cert_config.GetString("CACertFilename", m_cacertFilename);
+            m_clcrlFilename = m_cert_config.GetString("ClientCrlFilename", m_clcrlFilename);
+
             if (m_certFilename != "")
             {
                 m_log.Info("[MONEY SERVER]: ReadIniConfig: Execute HTTPS comunication. Server Cert file is " + m_certFilename);
             }
 
-            // Client Certificate
-            m_checkClientCert = m_cert_config.GetBoolean("CheckClientCert", m_checkClientCert);
-            m_cacertFilename = m_cert_config.GetString("CACertFilename", m_cacertFilename);
-            m_clcrlFilename = m_cert_config.GetString("ClientCrlFilename", m_clcrlFilename);
-            if (m_checkClientCert && (m_cacertFilename != ""))
+            if (m_checkClientCert && m_cacertFilename != "")
             {
                 m_certVerify.SetPrivateCA(m_cacertFilename);
                 m_log.Info("[MONEY SERVER]: ReadIniConfig: Execute Authentication of Clients. CA file is " + m_cacertFilename);
-            }
-            else
-            {
-                m_checkClientCert = false;
-            }
-            if (m_checkClientCert)
-            {
                 if (m_clcrlFilename != "")
                 {
                     m_certVerify.SetPrivateCRL(m_clcrlFilename);
                     m_log.Info("[MONEY SERVER]: ReadIniConfig: Execute Authentication of Clients. CRL file is " + m_clcrlFilename);
                 }
             }
+            else
+            {
+                m_checkClientCert = false;
+            }
 
-            // Initialisiere die MoneyDBService mit der Verbindungszeichenkette und der maxDBConnections
+            // Initialisiere die MoneyDBService
             dbService = new MoneyDBService();
             dbService.Initialise(connectionString, MAX_DB_CONNECTION);
         }
         catch (Exception ex)
         {
-            m_log.Error("[MONEY SERVER]: ReadIniConfig: Fail to setup configure. Please check MoneyServer.ini. Exit", ex);
+            m_log.Error("[MONEY SERVER]: ReadIniConfig: Fehler beim Einlesen der Konfiguration. Bitte MoneyServer.ini prüfen.", ex);
             Environment.Exit(1);
         }
     }
+
+
+
+
+
+
 
     /// <summary>
     /// Create PID File added by skidz
