@@ -551,11 +551,11 @@ namespace OpenSim.Grid.MoneyServer
             }
 
             // [JsonApi]
-            if (jsonConfig != null)
-            {
-                m_ApiKey = jsonConfig.GetString("ApiKey", m_ApiKey);
-                m_AllowedUser = jsonConfig.GetString("AllowedUser", m_AllowedUser);
-            }
+            //if (jsonConfig != null)
+            //{
+            //    m_ApiKey = jsonConfig.GetString("ApiKey", m_ApiKey);
+            //    m_AllowedUser = jsonConfig.GetString("AllowedUser", m_AllowedUser);
+            //}
 
             // [Hypergrid]
             if (hgConfig != null)

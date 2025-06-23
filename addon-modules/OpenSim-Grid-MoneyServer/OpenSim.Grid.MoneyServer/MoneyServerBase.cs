@@ -503,12 +503,12 @@ public MoneyServerBase()
                                username + ";Password=" + password + ";Pooling=" + pooling + ";";
 
             // [JsonApi]
-            IConfig jsonApi = Config.Configs["JsonApi"];
-            if (jsonApi != null)
-            {
-                m_ApiKey = jsonApi.GetString("ApiKey", m_ApiKey);
-                m_AllowedUser = jsonApi.GetString("AllowedUser", m_AllowedUser);
-            }
+            //IConfig jsonApi = Config.Configs["JsonApi"];
+            //if (jsonApi != null)
+            //{
+            //    m_ApiKey = jsonApi.GetString("ApiKey", m_ApiKey);
+            //    m_AllowedUser = jsonApi.GetString("AllowedUser", m_AllowedUser);
+            //}
 
             // [Network]
             IConfig network = Config.Configs["Network"];
@@ -555,6 +555,9 @@ public MoneyServerBase()
             m_CurrencyMaximum = m_server_config.GetInt("CurrencyMaximum", m_CurrencyMaximum);
             m_DefaultBalance = m_server_config.GetInt("DefaultBalance", m_DefaultBalance);
             m_CalculateCurrency = m_server_config.GetInt("CalculateCurrency", m_CalculateCurrency);
+
+            m_ApiKey = jsonApi.GetString("ApiKey", m_ApiKey);
+            m_AllowedUser = jsonApi.GetString("AllowedUser", m_AllowedUser);
 
             // [Messages]
             IConfig messages = Config.Configs["Messages"];
