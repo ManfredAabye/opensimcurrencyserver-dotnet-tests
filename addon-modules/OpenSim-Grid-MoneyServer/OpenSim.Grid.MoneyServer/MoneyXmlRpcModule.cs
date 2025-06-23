@@ -208,8 +208,6 @@ namespace OpenSim.Grid.MoneyServer
         private string m_certFilename = "";
         private string m_certPassword = "";
 
-        
-
         // SSL settings
         private string m_sslCommonName = "";
 
@@ -393,9 +391,6 @@ namespace OpenSim.Grid.MoneyServer
 
             m_moneyDBService = moneyDBService;
             m_config = config;
-
-            // Rufe die RegisterConsoleCommands Methode auf
-            RegisterConsoleCommands(MainConsole.Instance); // Aufruf der Initialisierung der Konsolenbefehle
 
             m_sessionDic = m_moneyCore.GetSessionDic();
             m_secureSessionDic = m_moneyCore.GetSecureSessionDic();
@@ -1645,322 +1640,78 @@ namespace OpenSim.Grid.MoneyServer
             }
         }
         #endregion
+
+        // ##################     Cashbook    ##################
+        #region Cashbook
+
+        public List<CashbookEntry> GetCashbook(string userID, int limit = 20)
+        {
+            List<CashbookEntry> cashbook = new List<CashbookEntry>();
+            string query = "SELECT time, description, amount, sender, receiver FROM transactions WHERE sender = ?userID OR receiver = ?userID ORDER BY time ASC LIMIT ?limit";
+
+            MySQLSuperManager dbm = ((MoneyDBService)m_moneyDBService).GetLockedConnection();
+            int saldo = 0;
+
+            try
+            {
+                using (MySqlCommand cmd = new MySqlCommand(query, dbm.Manager.dbcon))
+                {
+                    cmd.Parameters.AddWithValue("?userID", userID);
+                    cmd.Parameters.AddWithValue("?limit", limit);
+
+                    using (MySqlDataReader reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            int amount = reader.GetInt32("amount");
+                            string sender = reader.GetString("sender");
+                            string receiver = reader.GetString("receiver");
+                            string description = !reader.IsDBNull(reader.GetOrdinal("description")) ? reader.GetString("description") : "";
+
+                            bool isIncome = userID == receiver;
+                            bool isExpense = userID == sender;
+
+                            int? income = isIncome ? amount : (int?)null;
+                            int? expense = isExpense ? amount : (int?)null;
+
+                            saldo += (isIncome ? amount : 0) - (isExpense ? amount : 0);
+
+                            var entry = new CashbookEntry
+                            {
+                                Date = UnixTimeStampToDateTime(reader.GetInt32("time")).ToString("yyyy-MM-dd"),
+                                Description = description,
+                                Income = isIncome ? amount : (int?)null,
+                                Expense = isExpense ? amount : (int?)null,
+                                Balance = saldo
+                            };
+                            cashbook.Add(entry);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                m_log.ErrorFormat("[Cashbook]: Error building cashbook for userID: {0}. Exception: {1}", userID, ex);
+            }
+            finally
+            {
+                dbm.Release();
+            }
+            return cashbook;
+        }
+
+        // Hilfsfunktion:
+        private DateTime UnixTimeStampToDateTime(int unixTimeStamp)
+        {
+            System.DateTime dtDateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc);
+            dtDateTime = dtDateTime.AddSeconds(unixTimeStamp).ToLocalTime();
+            return dtDateTime;
+        }
+
+        #endregion
+
         // ##################     handler         ##################
         #region handler
-
-        // JSON API Verarbeitung
-
-        //private void JsonApiProcess(IOSHttpRequest httpRequest, IOSHttpResponse httpResponse)
-        //{
-        //    m_log.Info("[JSON API] Request erhalten!");
-
-        //    try
-        //    {
-        //        string body;
-        //        using (var reader = new StreamReader(httpRequest.InputStream, Encoding.UTF8))
-        //            body = reader.ReadToEnd();
-
-        //        m_log.Info($"[JSON API] Empfangenes JSON: {body}");
-
-        //        JsonElement json;
-        //        try
-        //        {
-        //            json = JsonDocument.Parse(body).RootElement;
-        //        }
-        //        catch (Exception parseEx)
-        //        {
-        //            m_log.Warn($"[JSON API] Fehler beim JSON-Parsing: {parseEx.Message}");
-        //            SetJsonResponse(httpResponse, 400, new { error = "Invalid JSON" });
-        //            return;
-        //        }
-
-        //        // Authentifizierung prüfen
-        //        string apiKeyFromRequest = null;
-        //        string allowedUserFromRequest = null;
-        //        bool apiKeyOk = TryGetProperty(json, "apiKey", out apiKeyFromRequest);
-        //        bool allowedUserOk = TryGetProperty(json, "allowedUser", out allowedUserFromRequest);
-
-        //        if (!apiKeyOk || !allowedUserOk ||
-        //            string.IsNullOrWhiteSpace(m_scriptApiKey) ||
-        //            string.IsNullOrWhiteSpace(m_scriptAllowedUser) ||
-        //            apiKeyFromRequest != m_scriptApiKey ||
-        //            allowedUserFromRequest != m_scriptAllowedUser)
-        //        {
-        //            m_log.Warn($"[JSON API] Authentifizierung fehlgeschlagen. apiKey: {apiKeyFromRequest}, allowedUser: {allowedUserFromRequest}");
-        //            SetJsonResponse(httpResponse, 401, new { error = "Unauthorized" });
-        //            return;
-        //        }
-
-        //        // Action & userID prüfen
-        //        if (!TryGetProperty(json, "action", out string action) ||
-        //            !TryGetProperty(json, "userID", out string userID))
-        //        {
-        //            m_log.Warn("[JSON API] action oder userID fehlt in der Anfrage.");
-        //            SetJsonResponse(httpResponse, 400, new { error = "Missing action or userID" });
-        //            return;
-        //        }
-
-        //        m_log.Info($"[JSON API] action={action} userID={userID}");
-
-        //        // Actions verarbeiten
-        //        switch (action)
-        //        {
-        //            // getbalance scheint zu funktionieren
-        //            case "getbalance":
-        //                m_log.Info("[JSON API] Handle: getbalance");
-        //                HandleGetBalance(httpResponse, userID);
-        //                break;
-
-        //            // withdrawMoney ❌ Fehler beim Zugriff auf die API!
-        //            case "withdrawMoney":
-        //                if (TryGetGuid(json, "transactionID", out Guid withdrawTid) &&
-        //                    TryGetInt(json, "amount", out int withdrawAmount))
-        //                {
-        //                    m_log.Info("[JSON API] Handle: withdrawMoney");
-        //                    HandleWithdrawMoney(httpResponse, withdrawTid, userID, withdrawAmount);
-        //                }
-        //                else
-        //                {
-        //                    m_log.Warn("[JSON API] withdrawMoney: transactionID oder amount fehlt!");
-        //                    SetJsonResponse(httpResponse, 400, new { error = "Missing transactionID or amount" });
-        //                }
-        //                break;
-
-        //            // giveMoney ❌ Fehler beim Zugriff auf die API!
-        //            case "giveMoney":
-        //                if (TryGetGuid(json, "transactionID", out Guid giveTid) &&
-        //                    TryGetProperty(json, "receiverID", out string receiverID) &&
-        //                    TryGetInt(json, "amount", out int giveAmount))
-        //                {
-        //                    m_log.Info("[JSON API] Handle: giveMoney");
-        //                    HandleGiveMoney(httpResponse, giveTid, receiverID, giveAmount);
-        //                }
-        //                else
-        //                {
-        //                    m_log.Warn("[JSON API] giveMoney: transactionID, receiverID oder amount fehlt!");
-        //                    SetJsonResponse(httpResponse, 400, new { error = "Missing transactionID, receiverID, or amount" });
-        //                }
-        //                break;
-
-        //            // BuyMoney ❌ Fehler beim Zugriff auf die API!
-        //            case "BuyMoney":
-        //                if (TryGetGuid(json, "transactionID", out Guid buyTid) &&
-        //                    TryGetInt(json, "amount", out int buyAmount))
-        //                {
-        //                    m_log.Info("[JSON API] Handle: BuyMoney");
-        //                    HandleBuyMoney(httpResponse, buyTid, userID, buyAmount);
-        //                }
-        //                else
-        //                {
-        //                    m_log.Warn("[JSON API] BuyMoney: transactionID oder amount fehlt!");
-        //                    SetJsonResponse(httpResponse, 400, new { error = "Missing transactionID or amount" });
-        //                }
-        //                break;
-
-        //            // BuyCurrency scheint zu funktionieren
-        //            case "BuyCurrency":
-        //                if (TryGetInt(json, "amount", out int buyCurrencyAmount))
-        //                {
-        //                    m_log.Info("[JSON API] Handle: BuyCurrency");
-        //                    HandleBuyCurrency(httpResponse, userID, buyCurrencyAmount);
-        //                }
-        //                else
-        //                {
-        //                    m_log.Warn("[JSON API] BuyCurrency: amount fehlt!");
-        //                    SetJsonResponse(httpResponse, 400, new { error = "Missing amount" });
-        //                }
-        //                break;
-
-        //            // addTransaction ❌ Fehler beim Zugriff auf die API!
-        //            case "addTransaction":
-        //                if (json.TryGetProperty("transaction", out JsonElement transactionElement))
-        //                {
-        //                    m_log.Info("[JSON API] Handle: addTransaction");
-        //                    var transaction = JsonSerializer.Deserialize<TransactionData>(transactionElement.GetRawText());
-        //                    HandleAddTransaction(httpResponse, transaction);
-        //                }
-        //                else
-        //                {
-        //                    m_log.Warn("[JSON API] addTransaction: transaction fehlt!");
-        //                    SetJsonResponse(httpResponse, 400, new { error = "Missing transaction" });
-        //                }
-        //                break;
-
-        //            // addUser ❌ Fehler beim Zugriff auf die API!
-        //            case "addUser":
-        //                if (TryGetInt(json, "balance", out int balance) &&
-        //                    TryGetInt(json, "status", out int status) &&
-        //                    TryGetInt(json, "type", out int type))
-        //                {
-        //                    m_log.Info("[JSON API] Handle: addUser");
-        //                    HandleAddUser(httpResponse, userID, balance, status, type);
-        //                }
-        //                else
-        //                {
-        //                    m_log.Warn("[JSON API] addUser: balance, status oder type fehlt!");
-        //                    SetJsonResponse(httpResponse, 400, new { error = "Missing balance, status, or type" });
-        //                }
-        //                break;
-
-
-        //            // updateTransactionStatus❌ Fehler beim Zugriff auf die API!
-        //            case "updateTransactionStatus":
-        //                if (TryGetGuid(json, "transactionID", out Guid updTid) &&
-        //                    TryGetInt(json, "status", out int updStatus) &&
-        //                    TryGetProperty(json, "description", out string updDescription))
-        //                {
-        //                    m_log.Info("[JSON API] Handle: updateTransactionStatus");
-        //                    HandleUpdateTransactionStatus(httpResponse, updTid, updStatus, updDescription);
-        //                }
-        //                else
-        //                {
-        //                    m_log.Warn("[JSON API] updateTransactionStatus: transactionID, status oder description fehlt!");
-        //                    SetJsonResponse(httpResponse, 400, new { error = "Missing transactionID, status, or description" });
-        //                }
-        //                break;
-
-        //            // SetTransExpired ❌ Fehler beim Zugriff auf die API!
-        //            case "SetTransExpired":
-        //                if (TryGetInt(json, "deadTime", out int deadTime))
-        //                {
-        //                    m_log.Info("[JSON API] Handle: SetTransExpired");
-        //                    HandleSetTransExpired(httpResponse, deadTime);
-        //                }
-        //                else
-        //                {
-        //                    m_log.Warn("[JSON API] SetTransExpired: deadTime fehlt!");
-        //                    SetJsonResponse(httpResponse, 400, new { error = "Missing deadTime" });
-        //                }
-        //                break;
-
-        //            // ValidateTransfer ❌ Fehler beim Zugriff auf die API!
-        //            case "ValidateTransfer":
-        //                if (TryGetProperty(json, "secureCode", out string secureCode) &&
-        //                    TryGetGuid(json, "transactionID", out Guid valTid))
-        //                {
-        //                    m_log.Info("[JSON API] Handle: ValidateTransfer");
-        //                    HandleValidateTransfer(httpResponse, secureCode, valTid);
-        //                }
-        //                else
-        //                {
-        //                    m_log.Warn("[JSON API] ValidateTransfer: secureCode oder transactionID fehlt!");
-        //                    SetJsonResponse(httpResponse, 400, new { error = "Missing secureCode or transactionID" });
-        //                }
-        //                break;
-
-        //            // getTransactionNum scheint zu funktionieren
-        //            case "getTransactionNum":
-        //                if (TryGetInt(json, "startTime", out int startTime) &&
-        //                    TryGetInt(json, "endTime", out int endTime))
-        //                {
-        //                    m_log.Info("[JSON API] Handle: getTransactionNum");
-        //                    HandleGetTransactionNum(httpResponse, userID, startTime, endTime);
-        //                }
-        //                else
-        //                {
-        //                    m_log.Warn("[JSON API] getTransactionNum: startTime oder endTime fehlt!");
-        //                    SetJsonResponse(httpResponse, 400, new { error = "Missing startTime or endTime" });
-        //                }
-        //                break;
-
-        //            // DoTransfer ❌ Fehler beim Zugriff auf die API!
-        //            case "DoTransfer":
-        //                if (TryGetGuid(json, "transactionID", out Guid doTransferTid))
-        //                {
-        //                    m_log.Info("[JSON API] Handle: DoTransfer");
-        //                    HandleDoTransfer(httpResponse, doTransferTid);
-        //                }
-        //                else
-        //                {
-        //                    m_log.Warn("[JSON API] DoTransfer: transactionID fehlt!");
-        //                    SetJsonResponse(httpResponse, 400, new { error = "Missing transactionID" });
-        //                }
-        //                break;
-
-        //            // DoAddMoney ❌ Fehler beim Zugriff auf die API!
-        //            case "DoAddMoney":
-        //                if (TryGetGuid(json, "transactionID", out Guid doAddTid))
-        //                {
-        //                    m_log.Info("[JSON API] Handle: DoAddMoney");
-        //                    HandleDoAddMoney(httpResponse, doAddTid);
-        //                }
-        //                else
-        //                {
-        //                    m_log.Warn("[JSON API] DoAddMoney: transactionID fehlt!");
-        //                    SetJsonResponse(httpResponse, 400, new { error = "Missing transactionID" });
-        //                }
-        //                break;
-
-        //            // TryAddUserInfo ❌ Fehler beim Zugriff auf die API!
-        //            case "TryAddUserInfo":
-        //                if (json.TryGetProperty("user", out JsonElement userElem))
-        //                {
-        //                    m_log.Info("[JSON API] Handle: TryAddUserInfo");
-        //                    var userInfo = JsonSerializer.Deserialize<UserInfo>(userElem.GetRawText());
-        //                    HandleTryAddUserInfo(httpResponse, userInfo);
-        //                }
-        //                else
-        //                {
-        //                    m_log.Warn("[JSON API] TryAddUserInfo: user fehlt!");
-        //                    SetJsonResponse(httpResponse, 400, new { error = "Missing user" });
-        //                }
-        //                break;
-
-        //            // FetchTransaction scheint zu funktionieren
-        //            case "FetchTransaction":
-        //                if (TryGetInt(json, "startTime", out int ftStartTime) &&
-        //                    TryGetInt(json, "endTime", out int ftEndTime) &&
-        //                    TryGetInt(json, "lastIndex", out int lastIndex))
-        //                {
-        //                    m_log.Info("[JSON API] Handle: FetchTransaction");
-        //                    HandleFetchTransaction(httpResponse, userID, ftStartTime, ftEndTime, lastIndex);
-        //                }
-        //                else
-        //                {
-        //                    m_log.Warn("[JSON API] FetchTransaction: startTime, endTime oder lastIndex fehlt!");
-        //                    SetJsonResponse(httpResponse, 400, new { error = "Missing startTime, endTime, or lastIndex" });
-        //                }
-        //                break;
-
-        //            // FetchUserInfo scheint zu funktionieren
-        //            case "FetchUserInfo":
-        //                m_log.Info("[JSON API] Handle: FetchUserInfo");
-        //                HandleFetchUserInfo(httpResponse, userID);
-        //                break;
-
-        //            // UserExists scheint zu funktionieren
-        //            case "UserExists":
-        //                m_log.Info("[JSON API] Handle: UserExists");
-        //                HandleUserExists(httpResponse, userID);
-        //                break;
-
-        //            // UpdateUserInfo scheint zu funktionieren
-        //            case "UpdateUserInfo":
-        //                if (json.TryGetProperty("user", out JsonElement upUserElem))
-        //                {
-        //                    m_log.Info("[JSON API] Handle: UpdateUserInfo");
-        //                    var updatedInfo = JsonSerializer.Deserialize<UserInfo>(upUserElem.GetRawText());
-        //                    HandleUpdateUserInfo(httpResponse, userID, updatedInfo);
-        //                }
-        //                else
-        //                {
-        //                    m_log.Warn("[JSON API] UpdateUserInfo: user fehlt!");
-        //                    SetJsonResponse(httpResponse, 400, new { error = "Missing user" });
-        //                }
-        //                break;
-
-        //            default:
-        //                m_log.Warn($"[JSON API] Unbekannte action: {action}");
-        //                SetJsonResponse(httpResponse, 400, new { error = "Invalid action" });
-        //                break;
-        //        }
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        m_log.Error($"[JSON API] Ausnahme: {ex}");
-        //        SetJsonResponse(httpResponse, 500, new { error = ex.Message });
-        //    }
-        //}
 
         private void JsonApiProcess(IOSHttpRequest httpRequest, IOSHttpResponse httpResponse)
         {
@@ -2016,6 +1767,30 @@ namespace OpenSim.Grid.MoneyServer
 
                 switch (action)
                 {
+                    case "getCashbook":
+                        {
+                            // userID konsistent holen (wie in anderen Cases)
+                            if (!TryGetProperty(json, "userID", out string cashbookUserId))
+                            {
+                                SetJsonResponse(httpResponse, 400, new { success = false, error = "Missing userID" });
+                                return;
+                            }
+
+                            int limit = 20;
+                            if (TryGetInt(json, "limit", out int parsedLimit))
+                                limit = parsedLimit;
+
+                            var cashbook = GetCashbook(cashbookUserId, limit);
+
+                            SetJsonResponse(httpResponse, 200, new
+                            {
+                                success = true,
+                                userID = cashbookUserId,
+                                cashbook = cashbook
+                            });
+                            return;
+                        }
+
                     case "getbalance":
                         if (string.IsNullOrEmpty(userID))
                         {
@@ -2395,6 +2170,7 @@ namespace OpenSim.Grid.MoneyServer
 
         #endregion
 
+
         #region Action-Handler (Beispiele, du kannst sie beliebig erweitern)
 
         private void HandleGetBalance(IOSHttpResponse response, string userID)
@@ -2545,42 +2321,7 @@ namespace OpenSim.Grid.MoneyServer
                 return new XmlRpcResponse();
             }
         }
-
-        public List<CashbookTransactionData> GetTransactions(string userID)
-        {
-            List<CashbookTransactionData> result = new List<CashbookTransactionData>();
-            string query = "SELECT receiver, amount, senderBalance, receiverBalance, objectName, commonName, description FROM transactions WHERE sender = ?userID OR receiver = ?userID";
-            var dbm = ((MoneyDBService)m_moneyDBService).GetLockedConnection();
-            try
-            {
-                using (var cmd = new MySql.Data.MySqlClient.MySqlCommand(query, dbm.Manager.dbcon))
-                {
-                    cmd.Parameters.AddWithValue("?userID", userID);
-                    using (var reader = cmd.ExecuteReader())
-                    {
-                        while (reader.Read())
-                        {
-                            result.Add(new CashbookTransactionData
-                            {
-                                Receiver = reader.GetString("receiver"),
-                                Amount = reader.GetInt32("amount"),
-                                SenderBalance = reader.GetInt32("senderBalance"),
-                                ReceiverBalance = reader.GetInt32("receiverBalance"),
-                                ObjectName = reader.GetString("objectName"),
-                                CommonName = reader.GetString("commonName"),
-                                Description = reader.GetString("description")
-                            });
-                        }
-                    }
-                }
-            }
-            finally
-            {
-                dbm.Release();
-            }
-            return result;
-        }
-
+        
         // Spezifische Handler UserAlertHandler: Handhabt Benutzerbenachrichtigungen.
         public XmlRpcResponse UserAlertHandler(XmlRpcRequest request, IPEndPoint client)
         {
@@ -3886,7 +3627,6 @@ namespace OpenSim.Grid.MoneyServer
         // ##################     helper          ##################
         #region helper
 
-
         //Spezifische Handler OnMoneyTransferedHandler: Protokolliert Details zu einer Geldüberweisung.
         public XmlRpcResponse OnMoneyTransferedHandler(XmlRpcRequest request, IPEndPoint client)
         {
@@ -4431,308 +4171,6 @@ namespace OpenSim.Grid.MoneyServer
             return false;
         }
 
-        // #########################################
-        // Cashbook ausgabe Transaktionen der User.
-        // #########################################
-
-        public void GetCashbookBalance(string userID)
-        {
-            int balance = 0;
-            string query = "SELECT balance FROM balances WHERE user = ?userID";
-
-            MySQLSuperManager dbm = ((MoneyDBService)m_moneyDBService).GetLockedConnection();
-
-            try
-            {
-                using (MySqlCommand cmd = new MySqlCommand(query, dbm.Manager.dbcon))
-                {
-                    cmd.Parameters.AddWithValue("?userID", userID);
-                    object result = cmd.ExecuteScalar();
-                    m_log.InfoFormat("[Cashbook]: Query executed for userID: {0}, result: {1}", userID, result);
-                    if (result != null)
-                    {
-                        balance = Convert.ToInt32(result);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                m_log.ErrorFormat("[Cashbook]: Error getting balance for userID: {0}. Exception: {1}", userID, ex);
-            }
-            finally
-            {
-                dbm.Release();
-            }
-
-            m_log.InfoFormat("[Cashbook]: User: {0}, Balance: {1}", userID, balance);
-        }
-
-
-        public void GetCashbookTotalSales(string userID)
-        {
-            List<CashbookTotalSalesData> totalSalesList = new List<CashbookTotalSalesData>();
-            string query = "SELECT objectUUID, TotalCount, TotalAmount FROM totalsales WHERE user = ?userID";
-
-            MySQLSuperManager dbm = ((MoneyDBService)m_moneyDBService).GetLockedConnection();
-
-            try
-            {
-                using (MySqlCommand cmd = new MySqlCommand(query, dbm.Manager.dbcon))
-                {
-                    cmd.Parameters.AddWithValue("?userID", userID);
-
-                    using (MySqlDataReader reader = cmd.ExecuteReader())
-                    {
-                        while (reader.Read())
-                        {
-                            CashbookTotalSalesData data = new CashbookTotalSalesData
-                            {
-                                ObjectUUID = reader.GetString("objectUUID"),
-                                TotalCount = reader.GetInt32("TotalCount"),
-                                TotalAmount = reader.GetInt32("TotalAmount")
-                            };
-                            totalSalesList.Add(data);
-                            m_log.InfoFormat("[Cashbook]: Found sale: ObjectUUID={0}, TotalCount={1}, TotalAmount={2}", data.ObjectUUID, data.TotalCount, data.TotalAmount);
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                m_log.ErrorFormat("[Cashbook]: Error getting total sales for userID: {0}. Exception: {1}", userID, ex);
-            }
-            finally
-            {
-                dbm.Release();
-            }
-
-            m_log.InfoFormat("[Cashbook]: User: {0}, Total Sales:", userID);
-            foreach (var sale in totalSalesList)
-            {
-                m_log.InfoFormat("ObjectUUID: {0}, TotalCount: {1}, TotalAmount: {2}", sale.ObjectUUID, sale.TotalCount, sale.TotalAmount);
-            }
-        }
-
-
-
-        public void GetCashbookTransactions(string userID)
-        {
-            List<CashbookTransactionData> transactionList = new List<CashbookTransactionData>();
-            string query = "SELECT receiver, amount, senderBalance, receiverBalance, objectName, commonName, description FROM transactions WHERE sender = ?userID OR receiver = ?userID";
-
-            MySQLSuperManager dbm = ((MoneyDBService)m_moneyDBService).GetLockedConnection();
-
-            try
-            {
-                using (MySqlCommand cmd = new MySqlCommand(query, dbm.Manager.dbcon))
-                {
-                    cmd.Parameters.AddWithValue("?userID", userID);
-
-                    using (MySqlDataReader reader = cmd.ExecuteReader())
-                    {
-                        while (reader.Read())
-                        {
-                            CashbookTransactionData data = new CashbookTransactionData
-                            {
-                                Receiver = reader.GetString("receiver"),
-                                Amount = reader.GetInt32("amount"),
-                                SenderBalance = reader.GetInt32("senderBalance"),
-                                ReceiverBalance = reader.GetInt32("receiverBalance"),
-                                ObjectName = reader.GetString("objectName"),
-                                CommonName = reader.GetString("commonName"),
-                                Description = reader.GetString("description")
-                            };
-                            transactionList.Add(data);
-                            m_log.InfoFormat("[Cashbook]: Found transaction: Receiver={0}, Amount={1}, SenderBalance={2}, ReceiverBalance={3}, ObjectName={4}, CommonName={5}, Description={6}",
-                                data.Receiver, data.Amount, data.SenderBalance, data.ReceiverBalance, data.ObjectName, data.CommonName, data.Description);
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                m_log.ErrorFormat("[Cashbook]: Error getting transactions for userID: {0}. Exception: {1}", userID, ex);
-            }
-            finally
-            {
-                dbm.Release();
-            }
-
-            m_log.InfoFormat("[Cashbook]: User: {0}, Transactions:", userID);
-            foreach (var transaction in transactionList)
-            {
-                m_log.InfoFormat("Receiver: {0}, Amount: {1}, SenderBalance: {2}, ReceiverBalance: {3}, ObjectName: {4}, CommonName: {5}, Description: {6}",
-                    transaction.Receiver, transaction.Amount, transaction.SenderBalance, transaction.ReceiverBalance, transaction.ObjectName, transaction.CommonName, transaction.Description);
-            }
-        }
-
-
-
-        // Aktualisierte Methode zur Initialisierung der Konsolenbefehle
-        public void RegisterConsoleCommands(ICommandConsole console)
-        {
-            console.Commands.AddCommand(
-                "MoneyXmlRpcModule",
-                false,
-                "getbalance",
-                "getbalance <userID> or <first name> <last name>",
-                "Get the balance for the specified user",
-                HandleGetCashbookBalance);
-
-            console.Commands.AddCommand(
-                "MoneyXmlRpcModule",
-                false,
-                "gettotalsales",
-                "gettotalsales <userID> or <first name> <last name>",
-                "Get the total sales for the specified user",
-                HandleGetCashbookTotalSales);
-
-            console.Commands.AddCommand(
-                "MoneyXmlRpcModule",
-                false,
-                "gettransactions",
-                "gettransactions <userID> or <first name> <last name>",
-                "Get the transactions for the specified user",
-                HandleGetCashbookTransactions);
-        }
-
-        private void HandleGetCashbookBalance(string module, string[] cmdparams)
-        {
-            if (cmdparams.Length < 3)
-            {
-                m_log.Info("[Cashbook]: Usage: getbalance <userID> or <first name> <last name>");
-                return;
-            }
-
-            string userID = string.Join(" ", cmdparams, 2, cmdparams.Length - 2).Trim();
-
-            // Prüfen, ob userID eine gültige UUID ist
-            if (Guid.TryParse(userID, out Guid _))
-            {
-                m_log.InfoFormat("[Cashbook]: userID is a valid UUID: {0}", userID);
-                GetCashbookBalance(userID);
-            }
-            else
-            {
-                m_log.InfoFormat("[Cashbook]: userID is a name: {0}", userID);
-                GetCashbookBalanceByName(userID);
-            }
-        }
-
-        private void HandleGetCashbookTotalSales(string module, string[] cmdparams)
-        {
-            if (cmdparams.Length < 3)
-            {
-                m_log.Info("[Cashbook]: Usage: gettotalsales <userID> or <first name> <last name>");
-                return;
-            }
-
-            string userID = string.Join(" ", cmdparams, 2, cmdparams.Length - 2).Trim();
-
-            // Prüfen, ob userID eine gültige UUID ist
-            if (Guid.TryParse(userID, out Guid _))
-            {
-                m_log.InfoFormat("[Cashbook]: userID is a valid UUID: {0}", userID);
-                GetCashbookTotalSales(userID);
-            }
-            else
-            {
-                m_log.InfoFormat("[Cashbook]: userID is a name: {0}", userID);
-                GetCashbookTotalSalesByName(userID);
-            }
-        }
-
-        private void HandleGetCashbookTransactions(string module, string[] cmdparams)
-        {
-            if (cmdparams.Length < 3)
-            {
-                m_log.Info("[Cashbook]: Usage: gettransactions <userID> or <first name> <last name>");
-                return;
-            }
-
-            string userID = string.Join(" ", cmdparams, 2, cmdparams.Length - 2).Trim();
-
-            // Prüfen, ob userID eine gültige UUID ist
-            if (Guid.TryParse(userID, out Guid _))
-            {
-                m_log.InfoFormat("[Cashbook]: userID is a valid UUID: {0}", userID);
-                GetCashbookTransactions(userID);
-            }
-            else
-            {
-                m_log.InfoFormat("[Cashbook]: userID is a name: {0}", userID);
-                GetCashbookTransactionsByName(userID);
-            }
-        }
-
-        private void GetCashbookBalanceByName(string name)
-        {
-            string userID = GetUUIDFromName(name);
-            if (string.IsNullOrEmpty(userID))
-            {
-                m_log.InfoFormat("[Cashbook]: No UUID found for user: {0}", name);
-                return;
-            }
-            GetCashbookBalance(userID);
-        }
-
-        private void GetCashbookTotalSalesByName(string name)
-        {
-            string userID = GetUUIDFromName(name);
-            if (string.IsNullOrEmpty(userID))
-            {
-                m_log.InfoFormat("[Cashbook]: No UUID found for user: {0}", name);
-                return;
-            }
-            GetCashbookTotalSales(userID);
-        }
-
-        private void GetCashbookTransactionsByName(string name)
-        {
-            string userID = GetUUIDFromName(name);
-            if (string.IsNullOrEmpty(userID))
-            {
-                m_log.InfoFormat("[Cashbook]: No UUID found for user: {0}", name);
-                return;
-            }
-            GetCashbookTransactions(userID);
-        }
-
-        private string GetUUIDFromName(string name)
-        {
-            string query = "SELECT PrincipalID FROM UserAccounts WHERE CONCAT(FirstName, ' ', LastName) = ?name";
-            string userID = null;
-
-            MySQLSuperManager dbm = ((MoneyDBService)m_moneyDBService).GetLockedConnection();
-
-            try
-            {
-                using (MySqlCommand cmd = new MySqlCommand(query, dbm.Manager.dbcon))
-                {
-                    cmd.Parameters.AddWithValue("?name", name);
-                    using (MySqlDataReader reader = cmd.ExecuteReader())
-                    {
-                        if (reader.Read())
-                        {
-                            userID = reader.GetString("PrincipalID");
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                m_log.ErrorFormat("[Cashbook]: Error getting UUID for name: {0}. Exception: {1}", name, ex);
-            }
-            finally
-            {
-                dbm.Release();
-            }
-
-            return userID;
-        }
-
-
-
         #endregion
 
     }
@@ -4741,30 +4179,21 @@ namespace OpenSim.Grid.MoneyServer
 // ##################     classes                ##################
 #region classes
 
+public class CashbookEntry
+{
+    public string Date { get; set; }          // z.B. "2025-06-23"
+    public string Description { get; set; }   // Beschreibung der Buchung
+    public int? Income { get; set; }          // Einnahmen in OS$, null wenn Ausgabe
+    public int? Expense { get; set; }         // Ausgaben in OS$, null wenn Einnahme
+    public int Balance { get; set; }          // Saldo nach Buchung
+}
+
 public class JsonStreamHandler : CustomSimpleStreamHandler
 {
     public JsonStreamHandler(string path, Action<IOSHttpRequest, IOSHttpResponse> processAction)
         : base(path, processAction)
     {
     }
-}
-
-public class CashbookTotalSalesData
-{
-    public string ObjectUUID { get; set; }
-    public int TotalCount { get; set; }
-    public int TotalAmount { get; set; }
-}
-
-public class CashbookTransactionData
-{
-    public string Receiver { get; set; }
-    public int Amount { get; set; }
-    public int SenderBalance { get; set; }
-    public int ReceiverBalance { get; set; }
-    public string ObjectName { get; set; }
-    public string CommonName { get; set; }
-    public string Description { get; set; }
 }
 
 public class CurrencyQuoteRequest
