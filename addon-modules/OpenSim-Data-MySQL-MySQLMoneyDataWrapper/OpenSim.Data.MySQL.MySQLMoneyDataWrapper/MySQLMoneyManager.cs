@@ -1934,7 +1934,6 @@ namespace OpenSim.Data.MySQL.MySQLMoneyDataWrapper
         }
         public bool DoTransfer(UUID transactionID)
         {
-            // 1. Hole die Transaktion aus der Datenbank
             string sql = "SELECT sender, receiver, amount, status FROM transactions WHERE UUID = ?tranid";
             MySqlCommand cmd = new MySqlCommand(sql, dbcon);
             cmd.Parameters.AddWithValue("?tranid", transactionID.ToString());
@@ -1952,7 +1951,6 @@ namespace OpenSim.Data.MySQL.MySQLMoneyDataWrapper
                 }
                 else
                 {
-                    // Keine Transaktion gefunden
                     m_log.Warn($"[DoTransfer]: Transaction {transactionID} not found.");
                     return false;
                 }
@@ -1965,7 +1963,6 @@ namespace OpenSim.Data.MySQL.MySQLMoneyDataWrapper
                 return false;
             }
 
-            // 2. Prüfe, ob Sender genug Guthaben hat
             int senderBalance = getBalance(senderID);
             if (senderBalance < amount)
             {
@@ -1973,12 +1970,11 @@ namespace OpenSim.Data.MySQL.MySQLMoneyDataWrapper
                 return false;
             }
 
-            // 3. Ziehe beim Sender ab, gebe dem Empfänger das Geld
             using (var tx = dbcon.BeginTransaction())
             {
                 try
                 {
-                    // Abziehen beim Sender
+                    // Sender abbuchen
                     sql = $"UPDATE balances SET balance = balance - ?amount WHERE user = ?user";
                     cmd = new MySqlCommand(sql, dbcon, tx);
                     cmd.Parameters.AddWithValue("?amount", amount);
@@ -1986,7 +1982,7 @@ namespace OpenSim.Data.MySQL.MySQLMoneyDataWrapper
                     int senderRows = cmd.ExecuteNonQuery();
                     cmd.Dispose();
 
-                    // Hinzufügen beim Empfänger
+                    // Empfänger gutschreiben
                     sql = $"UPDATE balances SET balance = balance + ?amount WHERE user = ?user";
                     cmd = new MySqlCommand(sql, dbcon, tx);
                     cmd.Parameters.AddWithValue("?amount", amount);
@@ -1994,7 +1990,7 @@ namespace OpenSim.Data.MySQL.MySQLMoneyDataWrapper
                     int receiverRows = cmd.ExecuteNonQuery();
                     cmd.Dispose();
 
-                    // Transaktionsstatus auf "erledigt" (z.B. 1) setzen
+                    // Transaktion als erledigt markieren
                     sql = $"UPDATE transactions SET status = 1 WHERE UUID = ?tranid";
                     cmd = new MySqlCommand(sql, dbcon, tx);
                     cmd.Parameters.AddWithValue("?tranid", transactionID.ToString());
@@ -2014,9 +2010,9 @@ namespace OpenSim.Data.MySQL.MySQLMoneyDataWrapper
             }
         }
 
+
         public bool DoAddMoney(UUID transactionID)
         {
-            // 1. Hole die Transaktion aus der Datenbank
             string sql = "SELECT receiver, amount, status FROM transactions WHERE UUID = ?tranid";
             MySqlCommand cmd = new MySqlCommand(sql, dbcon);
             cmd.Parameters.AddWithValue("?tranid", transactionID.ToString());
@@ -2033,7 +2029,6 @@ namespace OpenSim.Data.MySQL.MySQLMoneyDataWrapper
                 }
                 else
                 {
-                    // Keine Transaktion gefunden
                     m_log.Warn($"[DoAddMoney]: Transaction {transactionID} not found.");
                     return false;
                 }
@@ -2046,12 +2041,10 @@ namespace OpenSim.Data.MySQL.MySQLMoneyDataWrapper
                 return false;
             }
 
-            // 2. Geld hinzufügen (z.B. für Belohnungen, Käufe, Boni)
             using (var tx = dbcon.BeginTransaction())
             {
                 try
                 {
-                    // Hinzufügen beim Empfänger
                     sql = $"UPDATE balances SET balance = balance + ?amount WHERE user = ?user";
                     cmd = new MySqlCommand(sql, dbcon, tx);
                     cmd.Parameters.AddWithValue("?amount", amount);
@@ -2059,7 +2052,6 @@ namespace OpenSim.Data.MySQL.MySQLMoneyDataWrapper
                     int receiverRows = cmd.ExecuteNonQuery();
                     cmd.Dispose();
 
-                    // Transaktionsstatus auf "erledigt" (z.B. 1) setzen
                     sql = $"UPDATE transactions SET status = 1 WHERE UUID = ?tranid";
                     cmd = new MySqlCommand(sql, dbcon, tx);
                     cmd.Parameters.AddWithValue("?tranid", transactionID.ToString());
