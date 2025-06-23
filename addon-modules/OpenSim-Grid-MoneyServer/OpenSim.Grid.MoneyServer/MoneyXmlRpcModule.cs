@@ -356,145 +356,258 @@ namespace OpenSim.Grid.MoneyServer
         /// <param name="opensimVersion">The opensim version.</param>
         /// <param name="moneyDBService">The money database service.</param>
         /// <param name="moneyCore">The money core.</param>
+        //public void Initialise(string opensimVersion, IMoneyDBService moneyDBService, IMoneyServiceCore moneyCore, IConfigSource config)
+        //{
+        //    ArgumentNullException.ThrowIfNull(moneyDBService);
+
+        //    ArgumentNullException.ThrowIfNull(moneyCore);
+
+        //    m_moneyDBService = moneyDBService;
+        //    m_moneyCore = moneyCore;
+
+        //    // Get server configuration
+        //    var serverConfig = m_moneyCore.GetServerConfig() ?? throw new InvalidOperationException("Server configuration is not available");
+
+        //    // Get certificate configuration
+        //    var certConfig = m_moneyCore.GetCertConfig() ?? throw new InvalidOperationException("Certificate configuration is not available");
+
+        //    // Load configuration values
+        //    m_defaultBalance = serverConfig.GetInt("DefaultBalance", m_defaultBalance);
+        //    m_forceTransfer = serverConfig.GetBoolean("EnableForceTransfer", m_forceTransfer);
+        //    m_bankerAvatar = serverConfig.GetString("BankerAvatar", m_bankerAvatar).ToLower();
+
+        //    m_moneyDBService = moneyDBService;
+        //    m_moneyCore = moneyCore;
+        //    m_server_config = m_moneyCore.GetServerConfig();    // [MoneyServer] Section
+        //    m_cert_config = m_moneyCore.GetCertConfig();      // [Certificate] Section
+
+        //    m_TotalDay = serverConfig.GetInt("TotalDay", m_TotalDay);
+        //    m_TotalWeek = serverConfig.GetInt("TotalWeek", m_TotalWeek);
+        //    m_TotalMonth = serverConfig.GetInt("TotalMonth", m_TotalMonth);
+        //    m_CurrencyMaximum = serverConfig.GetInt("CurrencyMaximum", m_CurrencyMaximum);
+
+        //    m_CurrencyOnOff = serverConfig.GetString("CurrencyOnOff", m_CurrencyOnOff);
+        //    m_CurrencyGroupOnly = serverConfig.GetBoolean("CurrencyGroupOnly", m_CurrencyGroupOnly);
+        //    m_UserMailLock = serverConfig.GetBoolean("UserMailLock", m_UserMailLock);
+
+        //    m_CurrencyGroupName = serverConfig.GetString("CurrencyGroupName", m_CurrencyGroupName);
+        //    m_CurrencyGroupID = serverConfig.GetString("CurrencyGroupID", m_CurrencyGroupID);
+
+        //    // [MoneyServer] Section
+        //    m_defaultBalance = m_server_config.GetInt("DefaultBalance", m_defaultBalance);
+
+        //    m_forceTransfer = m_server_config.GetBoolean("EnableForceTransfer", m_forceTransfer);
+
+        //    string banker = m_server_config.GetString("BankerAvatar", m_bankerAvatar);
+        //    m_bankerAvatar = banker.ToLower();
+
+        //    m_enableAmountZero = m_server_config.GetBoolean("EnableAmountZero", m_enableAmountZero);
+        //    m_scriptSendMoney = m_server_config.GetBoolean("EnableScriptSendMoney", m_scriptSendMoney);
+        //    m_scriptAccessKey = m_server_config.GetString("MoneyScriptAccessKey", m_scriptAccessKey);
+        //    m_scriptIPaddress = m_server_config.GetString("MoneyScriptIPaddress", m_scriptIPaddress);
+
+        //    m_scriptApiKey = m_server_config.GetString("ApiKey", m_scriptApiKey); // New feature
+        //    m_scriptAllowedUser = m_server_config.GetString("AllowedUser", m_scriptAllowedUser); // New feature
+
+        //    m_CalculateCurrency = m_server_config.GetInt("CalculateCurrency", m_CalculateCurrency); // New feature
+        //    m_DebugConsole = m_server_config.GetBoolean("DebugConsole", m_DebugConsole); // New feature
+        //    m_DebugFile = m_server_config.GetBoolean("m_DebugFile", m_DebugFile); // New feature
+
+        //    m_TotalDay = m_server_config.GetInt("TotalDay", m_TotalDay);
+        //    m_TotalWeek = m_server_config.GetInt("TotalWeek", m_TotalWeek);
+        //    m_TotalMonth = m_server_config.GetInt("TotalMonth", m_TotalMonth);
+        //    m_CurrencyMaximum = m_server_config.GetInt("CurrencyMaximum", m_CurrencyMaximum);
+
+        //    m_CurrencyOnOff = m_server_config.GetString("CurrencyOnOff", m_CurrencyOnOff);
+        //    m_CurrencyGroupOnly = m_server_config.GetBoolean("CurrencyGroupOnly", m_CurrencyGroupOnly);
+        //    m_UserMailLock = m_server_config.GetBoolean("UserMailLock", m_UserMailLock);
+
+        //    m_CurrencyGroupName = m_server_config.GetString("CurrencyGroupName", m_CurrencyGroupName);
+        //    m_CurrencyGroupID = m_server_config.GetString("CurrencyGroupID", m_CurrencyGroupID);
+
+        //    if (m_CurrencyMaximum <= 0) m_CurrencyMaximum = 1000;
+
+        //    // Hyper Grid Avatar
+        //    m_hg_enable = m_server_config.GetBoolean("EnableHGAvatar", m_hg_enable);
+        //    m_gst_enable = m_server_config.GetBoolean("EnableGuestAvatar", m_gst_enable);
+        //    m_hg_defaultBalance = m_server_config.GetInt("HGAvatarDefaultBalance", m_hg_defaultBalance);
+        //    m_gst_defaultBalance = m_server_config.GetInt("GuestAvatarDefaultBalance", m_gst_defaultBalance);
+
+        //    // Update Balance Messages
+        //    m_BalanceMessageLandSale = m_server_config.GetString("BalanceMessageLandSale", m_BalanceMessageLandSale);
+        //    m_BalanceMessageRcvLandSale = m_server_config.GetString("BalanceMessageRcvLandSale", m_BalanceMessageRcvLandSale);
+        //    m_BalanceMessageSendGift = m_server_config.GetString("BalanceMessageSendGift", m_BalanceMessageSendGift);
+        //    m_BalanceMessageReceiveGift = m_server_config.GetString("BalanceMessageReceiveGift", m_BalanceMessageReceiveGift);
+        //    m_BalanceMessagePayCharge = m_server_config.GetString("BalanceMessagePayCharge", m_BalanceMessagePayCharge);
+        //    m_BalanceMessageBuyObject = m_server_config.GetString("BalanceMessageBuyObject", m_BalanceMessageBuyObject);
+        //    m_BalanceMessageSellObject = m_server_config.GetString("BalanceMessageSellObject", m_BalanceMessageSellObject);
+        //    m_BalanceMessageGetMoney = m_server_config.GetString("BalanceMessageGetMoney", m_BalanceMessageGetMoney);
+        //    m_BalanceMessageBuyMoney = m_server_config.GetString("BalanceMessageBuyMoney", m_BalanceMessageBuyMoney);
+        //    m_BalanceMessageRollBack = m_server_config.GetString("BalanceMessageRollBack", m_BalanceMessageRollBack);
+        //    m_BalanceMessageSendMoney = m_server_config.GetString("BalanceMessageSendMoney", m_BalanceMessageSendMoney);
+        //    m_BalanceMessageReceiveMoney = m_server_config.GetString("BalanceMessageReceiveMoney", m_BalanceMessageReceiveMoney);
+
+        //    // [Certificate] Section
+
+        //    // XML RPC to Region Server (Client Mode)
+        //    // Client Certificate
+        //    m_certFilename = m_cert_config.GetString("ClientCertFilename", m_certFilename);
+        //    m_certPassword = m_cert_config.GetString("ClientCertPassword", m_certPassword);
+        //    if (m_certFilename != "")
+        //    {
+        //        m_certVerify.SetPrivateCert(m_certFilename, m_certPassword);
+        //        m_log.Info("[MONEY XMLRPC]: Initialise: Issue Authentication of Client. Cert file is " + m_certFilename);
+        //    }
+
+        //    // Server Authentication
+        //    // CA : MoneyServer config for checking the server certificate of the web server for XMLRPC
+        //    m_checkServerCert = m_cert_config.GetBoolean("CheckServerCert", m_checkServerCert);
+        //    m_cacertFilename = m_cert_config.GetString("CACertFilename", m_cacertFilename);
+
+        //    if (m_cacertFilename != "")
+        //    {
+        //        m_certVerify.SetPrivateCA(m_cacertFilename);
+        //    }
+        //    else
+        //    {
+        //        m_checkServerCert = false;
+        //    }
+
+        //    if (m_checkServerCert)
+        //    {
+        //        m_log.Info("[MONEY XMLRPC]: Initialise: Execute Authentication of Server. CA file is " + m_cacertFilename);
+        //    }
+        //    else
+        //    {
+        //        m_log.Info("[MONEY XMLRPC]: CheckServerCert is false.");
+        //    }
+
+        //    m_moneyDBService = moneyDBService;
+        //    m_config = config;
+
+        //    // Rufe die RegisterConsoleCommands Methode auf
+        //    RegisterConsoleCommands(MainConsole.Instance); // Aufruf der Initialisierung der Konsolenbefehle
+
+        //    m_sessionDic = m_moneyCore.GetSessionDic();
+        //    m_secureSessionDic = m_moneyCore.GetSecureSessionDic();
+        //    m_webSessionDic = m_moneyCore.GetWebSessionDic();
+        //    RegisterHandlers();
+
+        //    RegisterStreamHandlers();
+        //}
+
         public void Initialise(string opensimVersion, IMoneyDBService moneyDBService, IMoneyServiceCore moneyCore, IConfigSource config)
         {
             ArgumentNullException.ThrowIfNull(moneyDBService);
-
             ArgumentNullException.ThrowIfNull(moneyCore);
+            ArgumentNullException.ThrowIfNull(config);
 
             m_moneyDBService = moneyDBService;
             m_moneyCore = moneyCore;
+            m_config = config;
 
-            // Get server configuration
-            var serverConfig = m_moneyCore.GetServerConfig() ?? throw new InvalidOperationException("Server configuration is not available");
+            // Konfigurationsobjekte
+            m_server_config = m_moneyCore.GetServerConfig(); // [MoneyServer]
+            m_cert_config = m_moneyCore.GetCertConfig();     // [Certificate]
 
-            // Get certificate configuration
-            var certConfig = m_moneyCore.GetCertConfig() ?? throw new InvalidOperationException("Certificate configuration is not available");
+            var securityConfig = config.Configs["Security"];
+            var scriptingConfig = config.Configs["Scripting"];
+            var jsonConfig = config.Configs["JsonApi"];
+            var hgConfig = config.Configs["Hypergrid"];
+            var msgConfig = config.Configs["Messages"];
 
-            // Load configuration values
-            m_defaultBalance = serverConfig.GetInt("DefaultBalance", m_defaultBalance);
-            m_forceTransfer = serverConfig.GetBoolean("EnableForceTransfer", m_forceTransfer);
-            m_bankerAvatar = serverConfig.GetString("BankerAvatar", m_bankerAvatar).ToLower();
-
-            m_moneyDBService = moneyDBService;
-            m_moneyCore = moneyCore;
-            m_server_config = m_moneyCore.GetServerConfig();    // [MoneyServer] Section
-            m_cert_config = m_moneyCore.GetCertConfig();      // [Certificate] Section
-
-            m_TotalDay = serverConfig.GetInt("TotalDay", m_TotalDay);
-            m_TotalWeek = serverConfig.GetInt("TotalWeek", m_TotalWeek);
-            m_TotalMonth = serverConfig.GetInt("TotalMonth", m_TotalMonth);
-            m_CurrencyMaximum = serverConfig.GetInt("CurrencyMaximum", m_CurrencyMaximum);
-
-            m_CurrencyOnOff = serverConfig.GetString("CurrencyOnOff", m_CurrencyOnOff);
-            m_CurrencyGroupOnly = serverConfig.GetBoolean("CurrencyGroupOnly", m_CurrencyGroupOnly);
-            m_UserMailLock = serverConfig.GetBoolean("UserMailLock", m_UserMailLock);
-            
-            m_CurrencyGroupName = serverConfig.GetString("CurrencyGroupName", m_CurrencyGroupName);
-            m_CurrencyGroupID = serverConfig.GetString("CurrencyGroupID", m_CurrencyGroupID);
-
-            // [MoneyServer] Section
+            // [MoneyServer]
             m_defaultBalance = m_server_config.GetInt("DefaultBalance", m_defaultBalance);
-
-            m_forceTransfer = m_server_config.GetBoolean("EnableForceTransfer", m_forceTransfer);
-
-            string banker = m_server_config.GetString("BankerAvatar", m_bankerAvatar);
-            m_bankerAvatar = banker.ToLower();
-
-            m_enableAmountZero = m_server_config.GetBoolean("EnableAmountZero", m_enableAmountZero);
-            m_scriptSendMoney = m_server_config.GetBoolean("EnableScriptSendMoney", m_scriptSendMoney);
-            m_scriptAccessKey = m_server_config.GetString("MoneyScriptAccessKey", m_scriptAccessKey);
-            m_scriptIPaddress = m_server_config.GetString("MoneyScriptIPaddress", m_scriptIPaddress);
-
-            m_scriptApiKey = m_server_config.GetString("ApiKey", m_scriptApiKey); // New feature
-            m_scriptAllowedUser = m_server_config.GetString("AllowedUser", m_scriptAllowedUser); // New feature
-
-            m_CalculateCurrency = m_server_config.GetInt("CalculateCurrency", m_CalculateCurrency); // New feature
-            m_DebugConsole = m_server_config.GetBoolean("DebugConsole", m_DebugConsole); // New feature
-            m_DebugFile = m_server_config.GetBoolean("m_DebugFile", m_DebugFile); // New feature
-
-            m_TotalDay = m_server_config.GetInt("TotalDay", m_TotalDay);
-            m_TotalWeek = m_server_config.GetInt("TotalWeek", m_TotalWeek);
-            m_TotalMonth = m_server_config.GetInt("TotalMonth", m_TotalMonth);
             m_CurrencyMaximum = m_server_config.GetInt("CurrencyMaximum", m_CurrencyMaximum);
-
             m_CurrencyOnOff = m_server_config.GetString("CurrencyOnOff", m_CurrencyOnOff);
-            m_CurrencyGroupOnly = m_server_config.GetBoolean("CurrencyGroupOnly", m_CurrencyGroupOnly);
-            m_UserMailLock = m_server_config.GetBoolean("UserMailLock", m_UserMailLock);
+            m_CalculateCurrency = m_server_config.GetInt("CalculateCurrency", m_CalculateCurrency);
 
-            m_CurrencyGroupName = m_server_config.GetString("CurrencyGroupName", m_CurrencyGroupName);
-            m_CurrencyGroupID = m_server_config.GetString("CurrencyGroupID", m_CurrencyGroupID);
-
-            if (m_CurrencyMaximum <= 0) m_CurrencyMaximum = 1000;
-
-            // Hyper Grid Avatar
-            m_hg_enable = m_server_config.GetBoolean("EnableHGAvatar", m_hg_enable);
-            m_gst_enable = m_server_config.GetBoolean("EnableGuestAvatar", m_gst_enable);
-            m_hg_defaultBalance = m_server_config.GetInt("HGAvatarDefaultBalance", m_hg_defaultBalance);
-            m_gst_defaultBalance = m_server_config.GetInt("GuestAvatarDefaultBalance", m_gst_defaultBalance);
-
-            // Update Balance Messages
-            m_BalanceMessageLandSale = m_server_config.GetString("BalanceMessageLandSale", m_BalanceMessageLandSale);
-            m_BalanceMessageRcvLandSale = m_server_config.GetString("BalanceMessageRcvLandSale", m_BalanceMessageRcvLandSale);
-            m_BalanceMessageSendGift = m_server_config.GetString("BalanceMessageSendGift", m_BalanceMessageSendGift);
-            m_BalanceMessageReceiveGift = m_server_config.GetString("BalanceMessageReceiveGift", m_BalanceMessageReceiveGift);
-            m_BalanceMessagePayCharge = m_server_config.GetString("BalanceMessagePayCharge", m_BalanceMessagePayCharge);
-            m_BalanceMessageBuyObject = m_server_config.GetString("BalanceMessageBuyObject", m_BalanceMessageBuyObject);
-            m_BalanceMessageSellObject = m_server_config.GetString("BalanceMessageSellObject", m_BalanceMessageSellObject);
-            m_BalanceMessageGetMoney = m_server_config.GetString("BalanceMessageGetMoney", m_BalanceMessageGetMoney);
-            m_BalanceMessageBuyMoney = m_server_config.GetString("BalanceMessageBuyMoney", m_BalanceMessageBuyMoney);
-            m_BalanceMessageRollBack = m_server_config.GetString("BalanceMessageRollBack", m_BalanceMessageRollBack);
-            m_BalanceMessageSendMoney = m_server_config.GetString("BalanceMessageSendMoney", m_BalanceMessageSendMoney);
-            m_BalanceMessageReceiveMoney = m_server_config.GetString("BalanceMessageReceiveMoney", m_BalanceMessageReceiveMoney);
-
-            // [Certificate] Section
-
-            // XML RPC to Region Server (Client Mode)
-            // Client Certificate
-            m_certFilename = m_cert_config.GetString("ClientCertFilename", m_certFilename);
-            m_certPassword = m_cert_config.GetString("ClientCertPassword", m_certPassword);
-            if (m_certFilename != "")
+            // [Security]
+            if (securityConfig != null)
             {
-                m_certVerify.SetPrivateCert(m_certFilename, m_certPassword);
-                m_log.Info("[MONEY XMLRPC]: Initialise: Issue Authentication of Client. Cert file is " + m_certFilename);
+                m_CurrencyGroupOnly = securityConfig.GetBoolean("CurrencyGroupOnly", m_CurrencyGroupOnly);
+                m_UserMailLock = securityConfig.GetBoolean("UserMailLock", m_UserMailLock);
+                m_CurrencyGroupID = securityConfig.GetString("CurrencyGroupID", m_CurrencyGroupID);
+                m_bankerAvatar = securityConfig.GetString("BankerAvatar", m_bankerAvatar).ToLower();
             }
 
-            // Server Authentication
-            // CA : MoneyServer config for checking the server certificate of the web server for XMLRPC
+            // [Scripting]
+            if (scriptingConfig != null)
+            {
+                m_forceTransfer = scriptingConfig.GetBoolean("EnableForceTransfer", m_forceTransfer);
+                m_enableAmountZero = scriptingConfig.GetBoolean("EnableAmountZero", m_enableAmountZero);
+                m_scriptSendMoney = scriptingConfig.GetBoolean("EnableScriptSendMoney", m_scriptSendMoney);
+                m_scriptAccessKey = scriptingConfig.GetString("MoneyScriptAccessKey", m_scriptAccessKey);
+                m_scriptIPaddress = scriptingConfig.GetString("MoneyScriptIPaddress", m_scriptIPaddress);
+            }
+
+            // [JsonApi]
+            if (jsonConfig != null)
+            {
+                m_scriptApiKey = jsonConfig.GetString("ApiKey", m_scriptApiKey);
+                m_scriptAllowedUser = jsonConfig.GetString("AllowedUser", m_scriptAllowedUser);
+            }
+
+            // [Hypergrid]
+            if (hgConfig != null)
+            {
+                m_hg_enable = hgConfig.GetBoolean("EnableHGAvatar", m_hg_enable);
+                m_gst_enable = hgConfig.GetBoolean("EnableGuestAvatar", m_gst_enable);
+                m_hg_defaultBalance = hgConfig.GetInt("HGAvatarDefaultBalance", m_hg_defaultBalance);
+                m_gst_defaultBalance = hgConfig.GetInt("GuestAvatarDefaultBalance", m_gst_defaultBalance);
+            }
+
+            // [Messages]
+            if (msgConfig != null)
+            {
+                m_BalanceMessageSendGift = msgConfig.GetString("BalanceMessageSendGift", m_BalanceMessageSendGift);
+                m_BalanceMessageReceiveGift = msgConfig.GetString("BalanceMessageReceiveGift", m_BalanceMessageReceiveGift);
+                m_BalanceMessagePayCharge = msgConfig.GetString("BalanceMessagePayCharge", m_BalanceMessagePayCharge);
+                m_BalanceMessageBuyObject = msgConfig.GetString("BalanceMessageBuyObject", m_BalanceMessageBuyObject);
+                m_BalanceMessageSellObject = msgConfig.GetString("BalanceMessageSellObject", m_BalanceMessageSellObject);
+                m_BalanceMessageLandSale = msgConfig.GetString("BalanceMessageLandSale", m_BalanceMessageLandSale);
+                m_BalanceMessageRcvLandSale = msgConfig.GetString("BalanceMessageScvLandSale", m_BalanceMessageRcvLandSale);
+                m_BalanceMessageGetMoney = msgConfig.GetString("BalanceMessageGetMoney", m_BalanceMessageGetMoney);
+                m_BalanceMessageBuyMoney = msgConfig.GetString("BalanceMessageBuyMoney", m_BalanceMessageBuyMoney);
+                m_BalanceMessageRollBack = msgConfig.GetString("BalanceMessageRollBack", m_BalanceMessageRollBack);
+                m_BalanceMessageSendMoney = msgConfig.GetString("BalanceMessageSendMoney", m_BalanceMessageSendMoney);
+                m_BalanceMessageReceiveMoney = msgConfig.GetString("BalanceMessageReceiveMoney", m_BalanceMessageReceiveMoney);
+            }
+
+            // [Certificate]
+            m_certFilename = m_cert_config.GetString("ClientCertFilename", m_certFilename);
+            m_certPassword = m_cert_config.GetString("ClientCertPassword", m_certPassword);
+
+            if (!string.IsNullOrWhiteSpace(m_certFilename))
+            {
+                m_certVerify.SetPrivateCert(m_certFilename, m_certPassword);
+                m_log.Info($"[MONEY XMLRPC]: Client certificate loaded: {m_certFilename}");
+            }
+
             m_checkServerCert = m_cert_config.GetBoolean("CheckServerCert", m_checkServerCert);
             m_cacertFilename = m_cert_config.GetString("CACertFilename", m_cacertFilename);
 
-            if (m_cacertFilename != "")
+            if (!string.IsNullOrWhiteSpace(m_cacertFilename))
             {
                 m_certVerify.SetPrivateCA(m_cacertFilename);
+                m_log.Info($"[MONEY XMLRPC]: Server certificate verification enabled with CA: {m_cacertFilename}");
             }
             else
             {
                 m_checkServerCert = false;
+                m_log.Info("[MONEY XMLRPC]: Server certificate verification disabled.");
             }
 
-            if (m_checkServerCert)
-            {
-                m_log.Info("[MONEY XMLRPC]: Initialise: Execute Authentication of Server. CA file is " + m_cacertFilename);
-            }
-            else
-            {
-                m_log.Info("[MONEY XMLRPC]: CheckServerCert is false.");
-            }
-
-            m_moneyDBService = moneyDBService;
-            m_config = config;
-
-            // Rufe die RegisterConsoleCommands Methode auf
-            RegisterConsoleCommands(MainConsole.Instance); // Aufruf der Initialisierung der Konsolenbefehle
-
+            // Initialisierung abgeschlossen
             m_sessionDic = m_moneyCore.GetSessionDic();
             m_secureSessionDic = m_moneyCore.GetSecureSessionDic();
             m_webSessionDic = m_moneyCore.GetWebSessionDic();
-            RegisterHandlers();
 
+            RegisterConsoleCommands(MainConsole.Instance);
+            RegisterHandlers();
             RegisterStreamHandlers();
         }
+
 
         private void RegisterStreamHandlers()
         {
