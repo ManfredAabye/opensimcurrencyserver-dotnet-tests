@@ -1649,7 +1649,319 @@ namespace OpenSim.Grid.MoneyServer
         #region handler
 
         // JSON API Verarbeitung
-               
+
+        //private void JsonApiProcess(IOSHttpRequest httpRequest, IOSHttpResponse httpResponse)
+        //{
+        //    m_log.Info("[JSON API] Request erhalten!");
+
+        //    try
+        //    {
+        //        string body;
+        //        using (var reader = new StreamReader(httpRequest.InputStream, Encoding.UTF8))
+        //            body = reader.ReadToEnd();
+
+        //        m_log.Info($"[JSON API] Empfangenes JSON: {body}");
+
+        //        JsonElement json;
+        //        try
+        //        {
+        //            json = JsonDocument.Parse(body).RootElement;
+        //        }
+        //        catch (Exception parseEx)
+        //        {
+        //            m_log.Warn($"[JSON API] Fehler beim JSON-Parsing: {parseEx.Message}");
+        //            SetJsonResponse(httpResponse, 400, new { error = "Invalid JSON" });
+        //            return;
+        //        }
+
+        //        // Authentifizierung prüfen
+        //        string apiKeyFromRequest = null;
+        //        string allowedUserFromRequest = null;
+        //        bool apiKeyOk = TryGetProperty(json, "apiKey", out apiKeyFromRequest);
+        //        bool allowedUserOk = TryGetProperty(json, "allowedUser", out allowedUserFromRequest);
+
+        //        if (!apiKeyOk || !allowedUserOk ||
+        //            string.IsNullOrWhiteSpace(m_scriptApiKey) ||
+        //            string.IsNullOrWhiteSpace(m_scriptAllowedUser) ||
+        //            apiKeyFromRequest != m_scriptApiKey ||
+        //            allowedUserFromRequest != m_scriptAllowedUser)
+        //        {
+        //            m_log.Warn($"[JSON API] Authentifizierung fehlgeschlagen. apiKey: {apiKeyFromRequest}, allowedUser: {allowedUserFromRequest}");
+        //            SetJsonResponse(httpResponse, 401, new { error = "Unauthorized" });
+        //            return;
+        //        }
+
+        //        // Action & userID prüfen
+        //        if (!TryGetProperty(json, "action", out string action) ||
+        //            !TryGetProperty(json, "userID", out string userID))
+        //        {
+        //            m_log.Warn("[JSON API] action oder userID fehlt in der Anfrage.");
+        //            SetJsonResponse(httpResponse, 400, new { error = "Missing action or userID" });
+        //            return;
+        //        }
+
+        //        m_log.Info($"[JSON API] action={action} userID={userID}");
+
+        //        // Actions verarbeiten
+        //        switch (action)
+        //        {
+        //            // getbalance scheint zu funktionieren
+        //            case "getbalance":
+        //                m_log.Info("[JSON API] Handle: getbalance");
+        //                HandleGetBalance(httpResponse, userID);
+        //                break;
+
+        //            // withdrawMoney ❌ Fehler beim Zugriff auf die API!
+        //            case "withdrawMoney":
+        //                if (TryGetGuid(json, "transactionID", out Guid withdrawTid) &&
+        //                    TryGetInt(json, "amount", out int withdrawAmount))
+        //                {
+        //                    m_log.Info("[JSON API] Handle: withdrawMoney");
+        //                    HandleWithdrawMoney(httpResponse, withdrawTid, userID, withdrawAmount);
+        //                }
+        //                else
+        //                {
+        //                    m_log.Warn("[JSON API] withdrawMoney: transactionID oder amount fehlt!");
+        //                    SetJsonResponse(httpResponse, 400, new { error = "Missing transactionID or amount" });
+        //                }
+        //                break;
+
+        //            // giveMoney ❌ Fehler beim Zugriff auf die API!
+        //            case "giveMoney":
+        //                if (TryGetGuid(json, "transactionID", out Guid giveTid) &&
+        //                    TryGetProperty(json, "receiverID", out string receiverID) &&
+        //                    TryGetInt(json, "amount", out int giveAmount))
+        //                {
+        //                    m_log.Info("[JSON API] Handle: giveMoney");
+        //                    HandleGiveMoney(httpResponse, giveTid, receiverID, giveAmount);
+        //                }
+        //                else
+        //                {
+        //                    m_log.Warn("[JSON API] giveMoney: transactionID, receiverID oder amount fehlt!");
+        //                    SetJsonResponse(httpResponse, 400, new { error = "Missing transactionID, receiverID, or amount" });
+        //                }
+        //                break;
+
+        //            // BuyMoney ❌ Fehler beim Zugriff auf die API!
+        //            case "BuyMoney":
+        //                if (TryGetGuid(json, "transactionID", out Guid buyTid) &&
+        //                    TryGetInt(json, "amount", out int buyAmount))
+        //                {
+        //                    m_log.Info("[JSON API] Handle: BuyMoney");
+        //                    HandleBuyMoney(httpResponse, buyTid, userID, buyAmount);
+        //                }
+        //                else
+        //                {
+        //                    m_log.Warn("[JSON API] BuyMoney: transactionID oder amount fehlt!");
+        //                    SetJsonResponse(httpResponse, 400, new { error = "Missing transactionID or amount" });
+        //                }
+        //                break;
+
+        //            // BuyCurrency scheint zu funktionieren
+        //            case "BuyCurrency":
+        //                if (TryGetInt(json, "amount", out int buyCurrencyAmount))
+        //                {
+        //                    m_log.Info("[JSON API] Handle: BuyCurrency");
+        //                    HandleBuyCurrency(httpResponse, userID, buyCurrencyAmount);
+        //                }
+        //                else
+        //                {
+        //                    m_log.Warn("[JSON API] BuyCurrency: amount fehlt!");
+        //                    SetJsonResponse(httpResponse, 400, new { error = "Missing amount" });
+        //                }
+        //                break;
+
+        //            // addTransaction ❌ Fehler beim Zugriff auf die API!
+        //            case "addTransaction":
+        //                if (json.TryGetProperty("transaction", out JsonElement transactionElement))
+        //                {
+        //                    m_log.Info("[JSON API] Handle: addTransaction");
+        //                    var transaction = JsonSerializer.Deserialize<TransactionData>(transactionElement.GetRawText());
+        //                    HandleAddTransaction(httpResponse, transaction);
+        //                }
+        //                else
+        //                {
+        //                    m_log.Warn("[JSON API] addTransaction: transaction fehlt!");
+        //                    SetJsonResponse(httpResponse, 400, new { error = "Missing transaction" });
+        //                }
+        //                break;
+
+        //            // addUser ❌ Fehler beim Zugriff auf die API!
+        //            case "addUser":
+        //                if (TryGetInt(json, "balance", out int balance) &&
+        //                    TryGetInt(json, "status", out int status) &&
+        //                    TryGetInt(json, "type", out int type))
+        //                {
+        //                    m_log.Info("[JSON API] Handle: addUser");
+        //                    HandleAddUser(httpResponse, userID, balance, status, type);
+        //                }
+        //                else
+        //                {
+        //                    m_log.Warn("[JSON API] addUser: balance, status oder type fehlt!");
+        //                    SetJsonResponse(httpResponse, 400, new { error = "Missing balance, status, or type" });
+        //                }
+        //                break;
+
+
+        //            // updateTransactionStatus❌ Fehler beim Zugriff auf die API!
+        //            case "updateTransactionStatus":
+        //                if (TryGetGuid(json, "transactionID", out Guid updTid) &&
+        //                    TryGetInt(json, "status", out int updStatus) &&
+        //                    TryGetProperty(json, "description", out string updDescription))
+        //                {
+        //                    m_log.Info("[JSON API] Handle: updateTransactionStatus");
+        //                    HandleUpdateTransactionStatus(httpResponse, updTid, updStatus, updDescription);
+        //                }
+        //                else
+        //                {
+        //                    m_log.Warn("[JSON API] updateTransactionStatus: transactionID, status oder description fehlt!");
+        //                    SetJsonResponse(httpResponse, 400, new { error = "Missing transactionID, status, or description" });
+        //                }
+        //                break;
+
+        //            // SetTransExpired ❌ Fehler beim Zugriff auf die API!
+        //            case "SetTransExpired":
+        //                if (TryGetInt(json, "deadTime", out int deadTime))
+        //                {
+        //                    m_log.Info("[JSON API] Handle: SetTransExpired");
+        //                    HandleSetTransExpired(httpResponse, deadTime);
+        //                }
+        //                else
+        //                {
+        //                    m_log.Warn("[JSON API] SetTransExpired: deadTime fehlt!");
+        //                    SetJsonResponse(httpResponse, 400, new { error = "Missing deadTime" });
+        //                }
+        //                break;
+
+        //            // ValidateTransfer ❌ Fehler beim Zugriff auf die API!
+        //            case "ValidateTransfer":
+        //                if (TryGetProperty(json, "secureCode", out string secureCode) &&
+        //                    TryGetGuid(json, "transactionID", out Guid valTid))
+        //                {
+        //                    m_log.Info("[JSON API] Handle: ValidateTransfer");
+        //                    HandleValidateTransfer(httpResponse, secureCode, valTid);
+        //                }
+        //                else
+        //                {
+        //                    m_log.Warn("[JSON API] ValidateTransfer: secureCode oder transactionID fehlt!");
+        //                    SetJsonResponse(httpResponse, 400, new { error = "Missing secureCode or transactionID" });
+        //                }
+        //                break;
+
+        //            // getTransactionNum scheint zu funktionieren
+        //            case "getTransactionNum":
+        //                if (TryGetInt(json, "startTime", out int startTime) &&
+        //                    TryGetInt(json, "endTime", out int endTime))
+        //                {
+        //                    m_log.Info("[JSON API] Handle: getTransactionNum");
+        //                    HandleGetTransactionNum(httpResponse, userID, startTime, endTime);
+        //                }
+        //                else
+        //                {
+        //                    m_log.Warn("[JSON API] getTransactionNum: startTime oder endTime fehlt!");
+        //                    SetJsonResponse(httpResponse, 400, new { error = "Missing startTime or endTime" });
+        //                }
+        //                break;
+
+        //            // DoTransfer ❌ Fehler beim Zugriff auf die API!
+        //            case "DoTransfer":
+        //                if (TryGetGuid(json, "transactionID", out Guid doTransferTid))
+        //                {
+        //                    m_log.Info("[JSON API] Handle: DoTransfer");
+        //                    HandleDoTransfer(httpResponse, doTransferTid);
+        //                }
+        //                else
+        //                {
+        //                    m_log.Warn("[JSON API] DoTransfer: transactionID fehlt!");
+        //                    SetJsonResponse(httpResponse, 400, new { error = "Missing transactionID" });
+        //                }
+        //                break;
+
+        //            // DoAddMoney ❌ Fehler beim Zugriff auf die API!
+        //            case "DoAddMoney":
+        //                if (TryGetGuid(json, "transactionID", out Guid doAddTid))
+        //                {
+        //                    m_log.Info("[JSON API] Handle: DoAddMoney");
+        //                    HandleDoAddMoney(httpResponse, doAddTid);
+        //                }
+        //                else
+        //                {
+        //                    m_log.Warn("[JSON API] DoAddMoney: transactionID fehlt!");
+        //                    SetJsonResponse(httpResponse, 400, new { error = "Missing transactionID" });
+        //                }
+        //                break;
+
+        //            // TryAddUserInfo ❌ Fehler beim Zugriff auf die API!
+        //            case "TryAddUserInfo":
+        //                if (json.TryGetProperty("user", out JsonElement userElem))
+        //                {
+        //                    m_log.Info("[JSON API] Handle: TryAddUserInfo");
+        //                    var userInfo = JsonSerializer.Deserialize<UserInfo>(userElem.GetRawText());
+        //                    HandleTryAddUserInfo(httpResponse, userInfo);
+        //                }
+        //                else
+        //                {
+        //                    m_log.Warn("[JSON API] TryAddUserInfo: user fehlt!");
+        //                    SetJsonResponse(httpResponse, 400, new { error = "Missing user" });
+        //                }
+        //                break;
+
+        //            // FetchTransaction scheint zu funktionieren
+        //            case "FetchTransaction":
+        //                if (TryGetInt(json, "startTime", out int ftStartTime) &&
+        //                    TryGetInt(json, "endTime", out int ftEndTime) &&
+        //                    TryGetInt(json, "lastIndex", out int lastIndex))
+        //                {
+        //                    m_log.Info("[JSON API] Handle: FetchTransaction");
+        //                    HandleFetchTransaction(httpResponse, userID, ftStartTime, ftEndTime, lastIndex);
+        //                }
+        //                else
+        //                {
+        //                    m_log.Warn("[JSON API] FetchTransaction: startTime, endTime oder lastIndex fehlt!");
+        //                    SetJsonResponse(httpResponse, 400, new { error = "Missing startTime, endTime, or lastIndex" });
+        //                }
+        //                break;
+
+        //            // FetchUserInfo scheint zu funktionieren
+        //            case "FetchUserInfo":
+        //                m_log.Info("[JSON API] Handle: FetchUserInfo");
+        //                HandleFetchUserInfo(httpResponse, userID);
+        //                break;
+
+        //            // UserExists scheint zu funktionieren
+        //            case "UserExists":
+        //                m_log.Info("[JSON API] Handle: UserExists");
+        //                HandleUserExists(httpResponse, userID);
+        //                break;
+
+        //            // UpdateUserInfo scheint zu funktionieren
+        //            case "UpdateUserInfo":
+        //                if (json.TryGetProperty("user", out JsonElement upUserElem))
+        //                {
+        //                    m_log.Info("[JSON API] Handle: UpdateUserInfo");
+        //                    var updatedInfo = JsonSerializer.Deserialize<UserInfo>(upUserElem.GetRawText());
+        //                    HandleUpdateUserInfo(httpResponse, userID, updatedInfo);
+        //                }
+        //                else
+        //                {
+        //                    m_log.Warn("[JSON API] UpdateUserInfo: user fehlt!");
+        //                    SetJsonResponse(httpResponse, 400, new { error = "Missing user" });
+        //                }
+        //                break;
+
+        //            default:
+        //                m_log.Warn($"[JSON API] Unbekannte action: {action}");
+        //                SetJsonResponse(httpResponse, 400, new { error = "Invalid action" });
+        //                break;
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        m_log.Error($"[JSON API] Ausnahme: {ex}");
+        //        SetJsonResponse(httpResponse, 500, new { error = ex.Message });
+        //    }
+        //}
+
         private void JsonApiProcess(IOSHttpRequest httpRequest, IOSHttpResponse httpResponse)
         {
             m_log.Info("[JSON API] Request erhalten!");
@@ -1670,7 +1982,7 @@ namespace OpenSim.Grid.MoneyServer
                 catch (Exception parseEx)
                 {
                     m_log.Warn($"[JSON API] Fehler beim JSON-Parsing: {parseEx.Message}");
-                    SetJsonResponse(httpResponse, 400, new { error = "Invalid JSON" });
+                    SetJsonResponse(httpResponse, 400, new { success = false, error = "Invalid JSON" });
                     return;
                 }
 
@@ -1687,278 +1999,351 @@ namespace OpenSim.Grid.MoneyServer
                     allowedUserFromRequest != m_scriptAllowedUser)
                 {
                     m_log.Warn($"[JSON API] Authentifizierung fehlgeschlagen. apiKey: {apiKeyFromRequest}, allowedUser: {allowedUserFromRequest}");
-                    SetJsonResponse(httpResponse, 401, new { error = "Unauthorized" });
+                    SetJsonResponse(httpResponse, 401, new { success = false, error = "Unauthorized" });
                     return;
                 }
 
-                // Action & userID prüfen
-                if (!TryGetProperty(json, "action", out string action) ||
-                    !TryGetProperty(json, "userID", out string userID))
+                // Action & userID prüfen (sofern nötig)
+                if (!TryGetProperty(json, "action", out string action))
                 {
-                    m_log.Warn("[JSON API] action oder userID fehlt in der Anfrage.");
-                    SetJsonResponse(httpResponse, 400, new { error = "Missing action or userID" });
+                    m_log.Warn("[JSON API] action fehlt in der Anfrage.");
+                    SetJsonResponse(httpResponse, 400, new { success = false, error = "Missing action" });
                     return;
                 }
+                string userID = TryGetProperty(json, "userID", out string uID) ? uID : null;
 
                 m_log.Info($"[JSON API] action={action} userID={userID}");
 
-                // Actions verarbeiten
                 switch (action)
                 {
-                    // getbalance scheint zu funktionieren
                     case "getbalance":
-                        m_log.Info("[JSON API] Handle: getbalance");
-                        HandleGetBalance(httpResponse, userID);
+                        if (string.IsNullOrEmpty(userID))
+                        {
+                            SetJsonResponse(httpResponse, 400, new { success = false, error = "Missing userID" });
+                            return;
+                        }
+                        int balance = m_moneyDBService.getBalance(userID);
+                        SetJsonResponse(httpResponse, 200, new { success = true, balance });
                         break;
 
-                    // withdrawMoney ❌ Fehler beim Zugriff auf die API!
-                    case "withdrawMoney":
-                        if (TryGetGuid(json, "transactionID", out Guid withdrawTid) &&
-                            TryGetInt(json, "amount", out int withdrawAmount))
-                        {
-                            m_log.Info("[JSON API] Handle: withdrawMoney");
-                            HandleWithdrawMoney(httpResponse, withdrawTid, userID, withdrawAmount);
-                        }
-                        else
-                        {
-                            m_log.Warn("[JSON API] withdrawMoney: transactionID oder amount fehlt!");
-                            SetJsonResponse(httpResponse, 400, new { error = "Missing transactionID or amount" });
-                        }
-                        break;
-
-                    // giveMoney ❌ Fehler beim Zugriff auf die API!
-                    case "giveMoney":
-                        if (TryGetGuid(json, "transactionID", out Guid giveTid) &&
-                            TryGetProperty(json, "receiverID", out string receiverID) &&
-                            TryGetInt(json, "amount", out int giveAmount))
-                        {
-                            m_log.Info("[JSON API] Handle: giveMoney");
-                            HandleGiveMoney(httpResponse, giveTid, receiverID, giveAmount);
-                        }
-                        else
-                        {
-                            m_log.Warn("[JSON API] giveMoney: transactionID, receiverID oder amount fehlt!");
-                            SetJsonResponse(httpResponse, 400, new { error = "Missing transactionID, receiverID, or amount" });
-                        }
-                        break;
-
-                    // BuyMoney ❌ Fehler beim Zugriff auf die API!
-                    case "BuyMoney":
-                        if (TryGetGuid(json, "transactionID", out Guid buyTid) &&
-                            TryGetInt(json, "amount", out int buyAmount))
-                        {
-                            m_log.Info("[JSON API] Handle: BuyMoney");
-                            HandleBuyMoney(httpResponse, buyTid, userID, buyAmount);
-                        }
-                        else
-                        {
-                            m_log.Warn("[JSON API] BuyMoney: transactionID oder amount fehlt!");
-                            SetJsonResponse(httpResponse, 400, new { error = "Missing transactionID or amount" });
-                        }
-                        break;
-
-                    // BuyCurrency scheint zu funktionieren
-                    case "BuyCurrency":
-                        if (TryGetInt(json, "amount", out int buyCurrencyAmount))
-                        {
-                            m_log.Info("[JSON API] Handle: BuyCurrency");
-                            HandleBuyCurrency(httpResponse, userID, buyCurrencyAmount);
-                        }
-                        else
-                        {
-                            m_log.Warn("[JSON API] BuyCurrency: amount fehlt!");
-                            SetJsonResponse(httpResponse, 400, new { error = "Missing amount" });
-                        }
-                        break;
-
-                    // addTransaction ❌ Fehler beim Zugriff auf die API!
-                    case "addTransaction":
-                        if (json.TryGetProperty("transaction", out JsonElement transactionElement))
-                        {
-                            m_log.Info("[JSON API] Handle: addTransaction");
-                            var transaction = JsonSerializer.Deserialize<TransactionData>(transactionElement.GetRawText());
-                            HandleAddTransaction(httpResponse, transaction);
-                        }
-                        else
-                        {
-                            m_log.Warn("[JSON API] addTransaction: transaction fehlt!");
-                            SetJsonResponse(httpResponse, 400, new { error = "Missing transaction" });
-                        }
-                        break;
-
-                    // addUser ❌ Fehler beim Zugriff auf die API!
-                    case "addUser":
-                        if (TryGetInt(json, "balance", out int balance) &&
-                            TryGetInt(json, "status", out int status) &&
-                            TryGetInt(json, "type", out int type))
-                        {
-                            m_log.Info("[JSON API] Handle: addUser");
-                            HandleAddUser(httpResponse, userID, balance, status, type);
-                        }
-                        else
-                        {
-                            m_log.Warn("[JSON API] addUser: balance, status oder type fehlt!");
-                            SetJsonResponse(httpResponse, 400, new { error = "Missing balance, status, or type" });
-                        }
-                        break;
-
-
-                    // updateTransactionStatus❌ Fehler beim Zugriff auf die API!
-                    case "updateTransactionStatus":
-                        if (TryGetGuid(json, "transactionID", out Guid updTid) &&
-                            TryGetInt(json, "status", out int updStatus) &&
-                            TryGetProperty(json, "description", out string updDescription))
-                        {
-                            m_log.Info("[JSON API] Handle: updateTransactionStatus");
-                            HandleUpdateTransactionStatus(httpResponse, updTid, updStatus, updDescription);
-                        }
-                        else
-                        {
-                            m_log.Warn("[JSON API] updateTransactionStatus: transactionID, status oder description fehlt!");
-                            SetJsonResponse(httpResponse, 400, new { error = "Missing transactionID, status, or description" });
-                        }
-                        break;
-
-                    // SetTransExpired ❌ Fehler beim Zugriff auf die API!
-                    case "SetTransExpired":
-                        if (TryGetInt(json, "deadTime", out int deadTime))
-                        {
-                            m_log.Info("[JSON API] Handle: SetTransExpired");
-                            HandleSetTransExpired(httpResponse, deadTime);
-                        }
-                        else
-                        {
-                            m_log.Warn("[JSON API] SetTransExpired: deadTime fehlt!");
-                            SetJsonResponse(httpResponse, 400, new { error = "Missing deadTime" });
-                        }
-                        break;
-
-                    // ValidateTransfer ❌ Fehler beim Zugriff auf die API!
-                    case "ValidateTransfer":
-                        if (TryGetProperty(json, "secureCode", out string secureCode) &&
-                            TryGetGuid(json, "transactionID", out Guid valTid))
-                        {
-                            m_log.Info("[JSON API] Handle: ValidateTransfer");
-                            HandleValidateTransfer(httpResponse, secureCode, valTid);
-                        }
-                        else
-                        {
-                            m_log.Warn("[JSON API] ValidateTransfer: secureCode oder transactionID fehlt!");
-                            SetJsonResponse(httpResponse, 400, new { error = "Missing secureCode or transactionID" });
-                        }
-                        break;
-
-                    // getTransactionNum scheint zu funktionieren
                     case "getTransactionNum":
-                        if (TryGetInt(json, "startTime", out int startTime) &&
-                            TryGetInt(json, "endTime", out int endTime))
+                        if (string.IsNullOrEmpty(userID) ||
+                            !TryGetInt(json, "startTime", out int stT) ||
+                            !TryGetInt(json, "endTime", out int enT))
                         {
-                            m_log.Info("[JSON API] Handle: getTransactionNum");
-                            HandleGetTransactionNum(httpResponse, userID, startTime, endTime);
+                            SetJsonResponse(httpResponse, 400, new { success = false, error = "Missing userID, startTime or endTime" });
+                            return;
                         }
-                        else
-                        {
-                            m_log.Warn("[JSON API] getTransactionNum: startTime oder endTime fehlt!");
-                            SetJsonResponse(httpResponse, 400, new { error = "Missing startTime or endTime" });
-                        }
+                        int num = m_moneyDBService.getTransactionNum(userID, stT, enT);
+                        SetJsonResponse(httpResponse, 200, new { success = true, num });
                         break;
 
-                    // DoTransfer ❌ Fehler beim Zugriff auf die API!
-                    case "DoTransfer":
-                        if (TryGetGuid(json, "transactionID", out Guid doTransferTid))
-                        {
-                            m_log.Info("[JSON API] Handle: DoTransfer");
-                            HandleDoTransfer(httpResponse, doTransferTid);
-                        }
-                        else
-                        {
-                            m_log.Warn("[JSON API] DoTransfer: transactionID fehlt!");
-                            SetJsonResponse(httpResponse, 400, new { error = "Missing transactionID" });
-                        }
-                        break;
-
-                    // DoAddMoney ❌ Fehler beim Zugriff auf die API!
-                    case "DoAddMoney":
-                        if (TryGetGuid(json, "transactionID", out Guid doAddTid))
-                        {
-                            m_log.Info("[JSON API] Handle: DoAddMoney");
-                            HandleDoAddMoney(httpResponse, doAddTid);
-                        }
-                        else
-                        {
-                            m_log.Warn("[JSON API] DoAddMoney: transactionID fehlt!");
-                            SetJsonResponse(httpResponse, 400, new { error = "Missing transactionID" });
-                        }
-                        break;
-
-                    // TryAddUserInfo ❌ Fehler beim Zugriff auf die API!
-                    case "TryAddUserInfo":
-                        if (json.TryGetProperty("user", out JsonElement userElem))
-                        {
-                            m_log.Info("[JSON API] Handle: TryAddUserInfo");
-                            var userInfo = JsonSerializer.Deserialize<UserInfo>(userElem.GetRawText());
-                            HandleTryAddUserInfo(httpResponse, userInfo);
-                        }
-                        else
-                        {
-                            m_log.Warn("[JSON API] TryAddUserInfo: user fehlt!");
-                            SetJsonResponse(httpResponse, 400, new { error = "Missing user" });
-                        }
-                        break;
-
-                    // FetchTransaction scheint zu funktionieren
-                    case "FetchTransaction":
-                        if (TryGetInt(json, "startTime", out int ftStartTime) &&
-                            TryGetInt(json, "endTime", out int ftEndTime) &&
-                            TryGetInt(json, "lastIndex", out int lastIndex))
-                        {
-                            m_log.Info("[JSON API] Handle: FetchTransaction");
-                            HandleFetchTransaction(httpResponse, userID, ftStartTime, ftEndTime, lastIndex);
-                        }
-                        else
-                        {
-                            m_log.Warn("[JSON API] FetchTransaction: startTime, endTime oder lastIndex fehlt!");
-                            SetJsonResponse(httpResponse, 400, new { error = "Missing startTime, endTime, or lastIndex" });
-                        }
-                        break;
-
-                    // FetchUserInfo scheint zu funktionieren
-                    case "FetchUserInfo":
-                        m_log.Info("[JSON API] Handle: FetchUserInfo");
-                        HandleFetchUserInfo(httpResponse, userID);
-                        break;
-
-                    // UserExists scheint zu funktionieren
                     case "UserExists":
-                        m_log.Info("[JSON API] Handle: UserExists");
-                        HandleUserExists(httpResponse, userID);
+                        if (string.IsNullOrEmpty(userID))
+                        {
+                            SetJsonResponse(httpResponse, 400, new { success = false, error = "Missing userID" });
+                            return;
+                        }
+                        bool exists = m_moneyDBService.UserExists(userID);
+                        SetJsonResponse(httpResponse, 200, new { exists });
                         break;
 
-                    // UpdateUserInfo scheint zu funktionieren
-                    case "UpdateUserInfo":
-                        if (json.TryGetProperty("user", out JsonElement upUserElem))
+                    case "withdrawMoney":
+                        if (string.IsNullOrEmpty(userID) ||
+                            !TryGetGuid(json, "transactionID", out Guid withdrawTid) ||
+                            !TryGetInt(json, "amount", out int withdrawAmount))
                         {
-                            m_log.Info("[JSON API] Handle: UpdateUserInfo");
-                            var updatedInfo = JsonSerializer.Deserialize<UserInfo>(upUserElem.GetRawText());
-                            HandleUpdateUserInfo(httpResponse, userID, updatedInfo);
+                            SetJsonResponse(httpResponse, 400, new { success = false, error = "Missing userID, transactionID or amount" });
+                            return;
+                        }
+                        try
+                        {
+                            bool wSuccess = m_moneyDBService.withdrawMoney(withdrawTid, userID, withdrawAmount);
+                            SetJsonResponse(httpResponse, wSuccess ? 200 : 400, new { success = wSuccess });
+                        }
+                        catch (Exception ex)
+                        {
+                            SetJsonResponse(httpResponse, 500, new { success = false, error = ex.Message });
+                        }
+                        break;
+
+                    case "giveMoney":
+                        if (!TryGetGuid(json, "transactionID", out Guid giveTid) ||
+                            !TryGetProperty(json, "receiverID", out string receiverID) ||
+                            !TryGetInt(json, "amount", out int giveAmount))
+                        {
+                            SetJsonResponse(httpResponse, 400, new { success = false, error = "Missing transactionID, receiverID or amount" });
+                            return;
+                        }
+                        try
+                        {
+                            bool gSuccess = m_moneyDBService.giveMoney(giveTid, receiverID, giveAmount);
+                            SetJsonResponse(httpResponse, gSuccess ? 200 : 400, new { success = gSuccess });
+                        }
+                        catch (Exception ex)
+                        {
+                            SetJsonResponse(httpResponse, 500, new { success = false, error = ex.Message });
+                        }
+                        break;
+
+                    case "BuyMoney":
+                        if (string.IsNullOrEmpty(userID) ||
+                            !TryGetGuid(json, "transactionID", out Guid buyTid) ||
+                            !TryGetInt(json, "amount", out int buyAmount))
+                        {
+                            SetJsonResponse(httpResponse, 400, new { success = false, error = "Missing userID, transactionID or amount" });
+                            return;
+                        }
+                        try
+                        {
+                            bool bSuccess = m_moneyDBService.BuyMoney(buyTid, userID, buyAmount);
+                            SetJsonResponse(httpResponse, bSuccess ? 200 : 400, new { success = bSuccess });
+                        }
+                        catch (Exception ex)
+                        {
+                            SetJsonResponse(httpResponse, 500, new { success = false, error = ex.Message });
+                        }
+                        break;
+
+                    case "addTransaction":
+                        if (!json.TryGetProperty("transaction", out JsonElement transactionElement))
+                        {
+                            SetJsonResponse(httpResponse, 400, new { success = false, error = "Missing transaction" });
+                            return;
+                        }
+                        try
+                        {
+                            bool tSuccess = m_moneyDBService.addTransaction(JsonSerializer.Deserialize<TransactionData>(transactionElement.GetRawText()));
+                            SetJsonResponse(httpResponse, tSuccess ? 200 : 400, new { success = tSuccess });
+                        }
+                        catch (Exception ex)
+                        {
+                            SetJsonResponse(httpResponse, 500, new { success = false, error = ex.Message });
+                        }
+                        break;
+
+                    case "addUser":
+                        if (string.IsNullOrEmpty(userID) ||
+                            !TryGetInt(json, "balance", out int addBalance) ||
+                            !TryGetInt(json, "status", out int addStatus) ||
+                            !TryGetInt(json, "type", out int addType))
+                        {
+                            SetJsonResponse(httpResponse, 400, new { success = false, error = "Missing userID, balance, status or type" });
+                            return;
+                        }
+                        try
+                        {
+                            bool aSuccess = m_moneyDBService.addUser(userID, addBalance, addStatus, addType);
+                            SetJsonResponse(httpResponse, aSuccess ? 200 : 400, new { success = aSuccess });
+                        }
+                        catch (Exception ex)
+                        {
+                            SetJsonResponse(httpResponse, 500, new { success = false, error = ex.Message });
+                        }
+                        break;
+
+                    case "BuyCurrency":
+                        if (string.IsNullOrEmpty(userID) ||
+                            !TryGetInt(json, "amount", out int buyCurrencyAmount))
+                        {
+                            SetJsonResponse(httpResponse, 400, new { success = false, error = "Missing userID or amount" });
+                            return;
+                        }
+                        try
+                        {
+                            bool bcSuccess = m_moneyDBService.BuyCurrency(userID, buyCurrencyAmount);
+                            SetJsonResponse(httpResponse, bcSuccess ? 200 : 400, new { success = bcSuccess });
+                        }
+                        catch (Exception ex)
+                        {
+                            SetJsonResponse(httpResponse, 500, new { success = false, error = ex.Message });
+                        }
+                        break;
+
+                    case "SetTransExpired":
+                        if (!TryGetInt(json, "deadTime", out int deadTime))
+                        {
+                            SetJsonResponse(httpResponse, 400, new { success = false, error = "Missing deadTime" });
+                            return;
+                        }
+                        try
+                        {
+                            bool seSuccess = m_moneyDBService.SetTransExpired(deadTime);
+                            SetJsonResponse(httpResponse, seSuccess ? 200 : 400, new { success = seSuccess });
+                        }
+                        catch (Exception ex)
+                        {
+                            SetJsonResponse(httpResponse, 500, new { success = false, error = ex.Message });
+                        }
+                        break;
+
+                    case "ValidateTransfer":
+                        if (!TryGetProperty(json, "secureCode", out string secureCode) ||
+                            !TryGetGuid(json, "transactionID", out Guid valTid))
+                        {
+                            SetJsonResponse(httpResponse, 400, new { success = false, error = "Missing secureCode or transactionID" });
+                            return;
+                        }
+                        try
+                        {
+                            bool valid = m_moneyDBService.ValidateTransfer(secureCode, valTid);
+                            SetJsonResponse(httpResponse, 200, new { valid });
+                        }
+                        catch (Exception ex)
+                        {
+                            SetJsonResponse(httpResponse, 500, new { success = false, error = ex.Message });
+                        }
+                        break;
+
+                    case "FetchUserInfo":
+                        if (string.IsNullOrEmpty(userID))
+                        {
+                            SetJsonResponse(httpResponse, 400, new { success = false, error = "Missing userID" });
+                            return;
+                        }
+                        var userInfo = m_moneyDBService.FetchUserInfo(userID);
+                        if (userInfo != null)
+                        {
+                            // Beide Schreibweisen für Kompatibilität!
+                            SetJsonResponse(httpResponse, 200, new
+                            {
+                                UserID = userInfo.UserID,
+                                userID = userInfo.UserID,
+                                SimIP = userInfo.SimIP,
+                                Avatar = userInfo.Avatar,
+                                PswHash = userInfo.PswHash,
+                                Type = userInfo.Type,
+                                Class = userInfo.Class,
+                                ServerURL = userInfo.ServerURL
+                            });
                         }
                         else
                         {
-                            m_log.Warn("[JSON API] UpdateUserInfo: user fehlt!");
-                            SetJsonResponse(httpResponse, 400, new { error = "Missing user" });
+                            SetJsonResponse(httpResponse, 404, new { success = false, error = "User not found" });
+                        }
+                        break;
+
+                    case "updateTransactionStatus":
+                        if (string.IsNullOrEmpty(userID) ||
+                            !TryGetGuid(json, "transactionID", out Guid updTid) ||
+                            !TryGetInt(json, "status", out int updStatus) ||
+                            !TryGetProperty(json, "description", out string updDescription))
+                        {
+                            SetJsonResponse(httpResponse, 400, new { success = false, error = "Missing userID, transactionID, status or description" });
+                            return;
+                        }
+                        try
+                        {
+                            bool uSuccess = m_moneyDBService.updateTransactionStatus(updTid, updStatus, updDescription);
+                            SetJsonResponse(httpResponse, uSuccess ? 200 : 400, new { success = uSuccess });
+                        }
+                        catch (Exception ex)
+                        {
+                            SetJsonResponse(httpResponse, 500, new { success = false, error = ex.Message });
+                        }
+                        break;
+
+                    case "DoTransfer":
+                        if (!TryGetGuid(json, "transactionID", out Guid doTransferTid))
+                        {
+                            SetJsonResponse(httpResponse, 400, new { success = false, error = "Missing transactionID" });
+                            return;
+                        }
+                        try
+                        {
+                            bool dtSuccess = m_moneyDBService.DoTransfer(doTransferTid);
+                            SetJsonResponse(httpResponse, dtSuccess ? 200 : 400, new { success = dtSuccess });
+                        }
+                        catch (Exception ex)
+                        {
+                            SetJsonResponse(httpResponse, 500, new { success = false, error = ex.Message });
+                        }
+                        break;
+
+                    case "DoAddMoney":
+                        if (!TryGetGuid(json, "transactionID", out Guid doAddTid))
+                        {
+                            SetJsonResponse(httpResponse, 400, new { success = false, error = "Missing transactionID" });
+                            return;
+                        }
+                        try
+                        {
+                            bool daSuccess = m_moneyDBService.DoAddMoney(doAddTid);
+                            SetJsonResponse(httpResponse, daSuccess ? 200 : 400, new { success = daSuccess });
+                        }
+                        catch (Exception ex)
+                        {
+                            SetJsonResponse(httpResponse, 500, new { success = false, error = ex.Message });
+                        }
+                        break;
+
+                    case "FetchTransaction":
+                        if (string.IsNullOrEmpty(userID) ||
+                            !TryGetInt(json, "startTime", out int ftStartTime) ||
+                            !TryGetInt(json, "endTime", out int ftEndTime) ||
+                            !TryGetInt(json, "lastIndex", out int lastIndex))
+                        {
+                            SetJsonResponse(httpResponse, 400, new { success = false, error = "Missing userID, startTime, endTime or lastIndex" });
+                            return;
+                        }
+                        var transaction = m_moneyDBService.FetchTransaction(userID, ftStartTime, ftEndTime, lastIndex);
+                        if (transaction != null)
+                        {
+                            // Immer ein Feld "transactions" zurückgeben (wie vom Test erwartet)
+                            SetJsonResponse(httpResponse, 200, new { transactions = new[] { transaction } });
+                        }
+                        else
+                        {
+                            SetJsonResponse(httpResponse, 404, new { success = false, error = "No transaction found", transactions = new object[0] });
+                        }
+                        break;
+
+                    case "TryAddUserInfo":
+                        if (!json.TryGetProperty("user", out JsonElement userElem))
+                        {
+                            SetJsonResponse(httpResponse, 400, new { success = false, error = "Missing user" });
+                            return;
+                        }
+                        try
+                        {
+                            var userInfoObj = JsonSerializer.Deserialize<UserInfo>(userElem.GetRawText());
+                            bool taSuccess = m_moneyDBService.TryAddUserInfo(userInfoObj);
+                            SetJsonResponse(httpResponse, taSuccess ? 200 : 400, new { success = taSuccess });
+                        }
+                        catch (Exception ex)
+                        {
+                            SetJsonResponse(httpResponse, 500, new { success = false, error = ex.Message });
+                        }
+                        break;
+
+                    case "UpdateUserInfo":
+                        if (string.IsNullOrEmpty(userID) ||
+                            !json.TryGetProperty("user", out JsonElement upUserElem))
+                        {
+                            SetJsonResponse(httpResponse, 400, new { success = false, error = "Missing userID or user" });
+                            return;
+                        }
+                        try
+                        {
+                            var updatedInfo = JsonSerializer.Deserialize<UserInfo>(upUserElem.GetRawText());
+                            bool upSuccess = m_moneyDBService.UpdateUserInfo(userID, updatedInfo);
+                            SetJsonResponse(httpResponse, upSuccess ? 200 : 400, new { success = upSuccess });
+                        }
+                        catch (Exception ex)
+                        {
+                            SetJsonResponse(httpResponse, 500, new { success = false, error = ex.Message });
                         }
                         break;
 
                     default:
-                        m_log.Warn($"[JSON API] Unbekannte action: {action}");
-                        SetJsonResponse(httpResponse, 400, new { error = "Invalid action" });
+                        SetJsonResponse(httpResponse, 400, new { success = false, error = "Invalid action" });
                         break;
                 }
             }
             catch (Exception ex)
             {
                 m_log.Error($"[JSON API] Ausnahme: {ex}");
-                SetJsonResponse(httpResponse, 500, new { error = ex.Message });
+                SetJsonResponse(httpResponse, 500, new { success = false, error = ex.Message });
             }
         }
 
