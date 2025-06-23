@@ -1,3 +1,4 @@
+; Das ist mir zuviel da muss in jeder kleinen Ecke etwas umgebaut werden ich versuche das wenn die api fertig ist noch einmal.
 [Startup]
 ; Path to create the PID file for identifying the process.
 PIDFile = "/tmp/money.pid"
