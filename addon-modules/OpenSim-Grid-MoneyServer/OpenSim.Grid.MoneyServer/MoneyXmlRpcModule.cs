@@ -511,6 +511,11 @@ namespace OpenSim.Grid.MoneyServer
             m_server_config = m_moneyCore.GetServerConfig(); // [MoneyServer]
             m_cert_config = m_moneyCore.GetCertConfig();     // [Certificate]
 
+            foreach (IConfig cfg in config.Configs)
+            {
+                m_log.Info($"[INI-DEBUG] Abschnitt gefunden: {cfg.Name}");
+            }
+
             var securityConfig = config.Configs["Security"];
             var scriptingConfig = config.Configs["Scripting"];
             var jsonConfig = config.Configs["JsonApi"];
@@ -522,6 +527,9 @@ namespace OpenSim.Grid.MoneyServer
             m_CurrencyMaximum = m_server_config.GetInt("CurrencyMaximum", m_CurrencyMaximum);
             m_CurrencyOnOff = m_server_config.GetString("CurrencyOnOff", m_CurrencyOnOff);
             m_CalculateCurrency = m_server_config.GetInt("CalculateCurrency", m_CalculateCurrency);
+
+            m_ApiKey = jsonConfig.GetString("ApiKey", m_ApiKey);
+            m_AllowedUser = jsonConfig.GetString("AllowedUser", m_AllowedUser);
 
             // [Security]
             if (securityConfig != null)
@@ -610,25 +618,70 @@ namespace OpenSim.Grid.MoneyServer
         }
 
 
+        //private void RegisterStreamHandlers()
+        //{
+        //    m_log.Info("[MONEY XMLRPC]: Registering currency.php handlers.");
+        //    m_httpServer.AddSimpleStreamHandler(new CurrencyStreamHandler("/currency.php", CurrencyProcessPHP));
+
+        //    m_log.Info("[MONEY XMLRPC]: Registering landtool.php handlers.");
+        //    m_httpServer.AddSimpleStreamHandler(new LandtoolStreamHandler("/landtool.php", LandtoolProcessPHP));
+
+        //    if (!string.IsNullOrWhiteSpace(m_ApiKey) && !string.IsNullOrWhiteSpace(m_AllowedUser))
+        //    {
+        //        m_httpServer.AddSimpleStreamHandler(new JsonStreamHandler("/api/json", JsonApiProcess));
+        //        m_log.Info("[MONEY XMLRPC]: JSON API handler registered (/api/json).");
+        //    }
+        //    else
+        //    {
+        //        m_log.Info("[MONEY XMLRPC]: JSON API handler NOT registered, missing ApiKey or AllowedUser!");
+        //    }
+
+        //    m_log.InfoFormat("[MONEY MODULE]: Registered /currency.php , /landtool.php and JSON API handler on Port: {0}", m_httpServer.Port);
+        //}
+
         private void RegisterStreamHandlers()
         {
-            m_log.Info("[MONEY XMLRPC]: Registering currency.php handlers.");
-            m_httpServer.AddSimpleStreamHandler(new CurrencyStreamHandler("/currency.php", CurrencyProcessPHP));
+            // currency.php Handler
+            try
+            {
+                m_httpServer.AddSimpleStreamHandler(new CurrencyStreamHandler("/currency.php", CurrencyProcessPHP));
+                m_log.Info("[MONEY XMLRPC]: currency.php handler registered (/currency.php).");
+            }
+            catch (Exception ex)
+            {
+                m_log.Error($"[MONEY XMLRPC]: currency.php handler NOT registered (/currency.php). Error: {ex.Message}");
+            }
 
-            m_log.Info("[MONEY XMLRPC]: Registering landtool.php handlers.");
-            m_httpServer.AddSimpleStreamHandler(new LandtoolStreamHandler("/landtool.php", LandtoolProcessPHP));
+            // landtool.php Handler
+            try
+            {
+                m_httpServer.AddSimpleStreamHandler(new LandtoolStreamHandler("/landtool.php", LandtoolProcessPHP));
+                m_log.Info("[MONEY XMLRPC]: landtool.php handler registered (/landtool.php).");
+            }
+            catch (Exception ex)
+            {
+                m_log.Error($"[MONEY XMLRPC]: landtool.php handler NOT registered (/landtool.php). Error: {ex.Message}");
+            }
 
+            // JSON API Handler
             if (!string.IsNullOrWhiteSpace(m_ApiKey) && !string.IsNullOrWhiteSpace(m_AllowedUser))
             {
-                m_httpServer.AddSimpleStreamHandler(new JsonStreamHandler("/api/json", JsonApiProcess));
-                m_log.Info("[MONEY XMLRPC]: JSON API handler registered (/api/json).");
+                try
+                {
+                    m_httpServer.AddSimpleStreamHandler(new JsonStreamHandler("/api/json", JsonApiProcess));
+                    m_log.Info("[MONEY XMLRPC]: JSON API handler registered (/api/json).");
+                }
+                catch (Exception ex)
+                {
+                    m_log.Error($"[MONEY XMLRPC]: JSON API handler NOT registered (/api/json). Error: {ex.Message}");
+                }
             }
             else
             {
-                m_log.Info("[MONEY XMLRPC]: JSON API handler NOT registered, missing ApiKey or AllowedUser!");
+                m_log.Warn("[MONEY XMLRPC]: JSON API handler NOT registered, missing ApiKey or AllowedUser!");
             }
 
-            m_log.InfoFormat("[MONEY MODULE]: Registered /currency.php , /landtool.php and JSON API handler on Port: {0}", m_httpServer.Port);
+            m_log.InfoFormat("[MONEY MODULE]: Handler-Registrierung abgeschlossen auf Port: {0}", m_httpServer.Port);
         }
 
         /// <summary>Posts the initialise.</summary>
