@@ -2139,6 +2139,11 @@ namespace OpenSim.Grid.MoneyServer
                         }
                         try
                         {
+                            if (m_moneyDBService.UserExists(userID))
+                            {
+                                SetJsonResponse(httpResponse, 409, new { success = false, error = "User already exists" });
+                                return;
+                            }
                             bool aSuccess = m_moneyDBService.addUser(userID, addBalance, addStatus, addType);
                             SetJsonResponse(httpResponse, aSuccess ? 200 : 400, new { success = aSuccess });
                         }

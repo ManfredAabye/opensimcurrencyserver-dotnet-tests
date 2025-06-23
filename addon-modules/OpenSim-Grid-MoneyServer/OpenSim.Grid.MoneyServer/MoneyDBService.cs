@@ -647,6 +647,7 @@ namespace OpenSim.Grid.MoneyServer
             }
         }
 
+
         /// <summary>Sets the trans expired.</summary>
         /// <param name="deadTime">The dead time.</param>
         public bool SetTransExpired(int deadTime)
@@ -1203,37 +1204,185 @@ namespace OpenSim.Grid.MoneyServer
 
         public bool withdrawMoney(Guid transactionID, string userID, int amount)
         {
-            throw new NotImplementedException();
+            MySQLSuperManager dbm = GetLockedConnection();
+            try
+            {
+                var uuid = new UUID(transactionID.ToString());
+                return dbm.Manager.withdrawMoney(uuid, userID, amount);
+            }
+            catch (MySqlException e)
+            {
+                m_log.Error(e);
+                dbm.Manager.Reconnect();
+                var uuid = new UUID(transactionID.ToString());
+                return dbm.Manager.withdrawMoney(uuid, userID, amount);
+            }
+            catch (Exception e)
+            {
+                m_log.Error(e);
+                return false;
+            }
+            finally
+            {
+                dbm.Release();
+            }
         }
 
         public bool giveMoney(Guid transactionID, string receiverID, int amount)
         {
-            throw new NotImplementedException();
+            MySQLSuperManager dbm = GetLockedConnection();
+            try
+            {
+                var uuid = new UUID(transactionID.ToString());
+                return dbm.Manager.giveMoney(uuid, receiverID, amount);
+            }
+            catch (MySqlException e)
+            {
+                m_log.Error(e);
+                dbm.Manager.Reconnect();
+                var uuid = new UUID(transactionID.ToString());
+                return dbm.Manager.giveMoney(uuid, receiverID, amount);
+            }
+            catch (Exception e)
+            {
+                m_log.Error(e);
+                return false;
+            }
+            finally
+            {
+                dbm.Release();
+            }
         }
 
         public bool BuyMoney(Guid transactionID, string userID, int amount)
         {
-            throw new NotImplementedException();
+            MySQLSuperManager dbm = GetLockedConnection();
+            try
+            {
+                var uuid = new UUID(transactionID.ToString());
+                return dbm.Manager.BuyMoney(uuid, userID, amount);
+            }
+            catch (MySqlException e)
+            {
+                m_log.Error(e);
+                dbm.Manager.Reconnect();
+                var uuid = new UUID(transactionID.ToString());
+                return dbm.Manager.BuyMoney(uuid, userID, amount);
+            }
+            catch (Exception e)
+            {
+                m_log.Error(e);
+                return false;
+            }
+            finally
+            {
+                dbm.Release();
+            }
         }
 
         public bool updateTransactionStatus(Guid transactionID, int status, string description)
         {
-            throw new NotImplementedException();
+            MySQLSuperManager dbm = GetLockedConnection();
+            try
+            {
+                var uuid = new UUID(transactionID.ToString());
+                return dbm.Manager.updateTransactionStatus(uuid, status, description);
+            }
+            catch (MySqlException e)
+            {
+                m_log.Error(e);
+                dbm.Manager.Reconnect();
+                var uuid = new UUID(transactionID.ToString());
+                return dbm.Manager.updateTransactionStatus(uuid, status, description);
+            }
+            catch (Exception e)
+            {
+                m_log.Error(e);
+                return false;
+            }
+            finally
+            {
+                dbm.Release();
+            }
         }
 
         public bool ValidateTransfer(string secureCode, Guid transactionID)
         {
-            throw new NotImplementedException();
+            MySQLSuperManager dbm = GetLockedConnection();
+            try
+            {
+                var uuid = new UUID(transactionID.ToString());
+                return dbm.Manager.ValidateTransfer(secureCode, uuid);
+            }
+            catch (MySqlException e)
+            {
+                m_log.Error(e);
+                dbm.Manager.Reconnect();
+                var uuid = new UUID(transactionID.ToString());
+                return dbm.Manager.ValidateTransfer(secureCode, uuid);
+            }
+            catch (Exception e)
+            {
+                m_log.Error(e);
+                return false;
+            }
+            finally
+            {
+                dbm.Release();
+            }
         }
 
         public bool DoTransfer(Guid transactionID)
         {
-            throw new NotImplementedException();
+            MySQLSuperManager dbm = GetLockedConnection();
+            try
+            {
+                var uuid = new UUID(transactionID.ToString());
+                return dbm.Manager.DoTransfer(uuid);
+            }
+            catch (MySqlException e)
+            {
+                m_log.Error(e);
+                dbm.Manager.Reconnect();
+                var uuid = new UUID(transactionID.ToString());
+                return dbm.Manager.DoTransfer(uuid);
+            }
+            catch (Exception e)
+            {
+                m_log.Error(e);
+                return false;
+            }
+            finally
+            {
+                dbm.Release();
+            }
         }
 
         public bool DoAddMoney(Guid transactionID)
         {
-            throw new NotImplementedException();
+            MySQLSuperManager dbm = GetLockedConnection();
+            try
+            {
+                var uuid = new UUID(transactionID.ToString());
+                return dbm.Manager.DoAddMoney(uuid);
+            }
+            catch (MySqlException e)
+            {
+                m_log.Error(e);
+                dbm.Manager.Reconnect();
+                var uuid = new UUID(transactionID.ToString());
+                return dbm.Manager.DoAddMoney(uuid);
+            }
+            catch (Exception e)
+            {
+                m_log.Error(e);
+                return false;
+            }
+            finally
+            {
+                dbm.Release();
+            }
         }
+
     }
 }
