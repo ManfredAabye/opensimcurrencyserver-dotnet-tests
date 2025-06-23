@@ -1932,7 +1932,152 @@ namespace OpenSim.Data.MySQL.MySQLMoneyDataWrapper
 
             return transactionHistory;
         }
+        public bool DoTransfer(UUID transactionID)
+        {
+            // 1. Hole die Transaktion aus der Datenbank
+            string sql = "SELECT sender, receiver, amount, status FROM transactions WHERE UUID = ?tranid";
+            MySqlCommand cmd = new MySqlCommand(sql, dbcon);
+            cmd.Parameters.AddWithValue("?tranid", transactionID.ToString());
 
+            string senderID = null, receiverID = null;
+            int amount = 0, status = 0;
+            using (var reader = cmd.ExecuteReader())
+            {
+                if (reader.Read())
+                {
+                    senderID = reader.GetString("sender");
+                    receiverID = reader.GetString("receiver");
+                    amount = reader.GetInt32("amount");
+                    status = reader.GetInt32("status");
+                }
+                else
+                {
+                    // Keine Transaktion gefunden
+                    m_log.Warn($"[DoTransfer]: Transaction {transactionID} not found.");
+                    return false;
+                }
+            }
+            cmd.Dispose();
+
+            if (status != 0)
+            {
+                m_log.Warn($"[DoTransfer]: Transaction {transactionID} already completed or invalid status.");
+                return false;
+            }
+
+            // 2. Prüfe, ob Sender genug Guthaben hat
+            int senderBalance = getBalance(senderID);
+            if (senderBalance < amount)
+            {
+                m_log.Warn($"[DoTransfer]: Sender {senderID} does not have enough balance.");
+                return false;
+            }
+
+            // 3. Ziehe beim Sender ab, gebe dem Empfänger das Geld
+            using (var tx = dbcon.BeginTransaction())
+            {
+                try
+                {
+                    // Abziehen beim Sender
+                    sql = $"UPDATE balances SET balance = balance - ?amount WHERE user = ?user";
+                    cmd = new MySqlCommand(sql, dbcon, tx);
+                    cmd.Parameters.AddWithValue("?amount", amount);
+                    cmd.Parameters.AddWithValue("?user", senderID);
+                    int senderRows = cmd.ExecuteNonQuery();
+                    cmd.Dispose();
+
+                    // Hinzufügen beim Empfänger
+                    sql = $"UPDATE balances SET balance = balance + ?amount WHERE user = ?user";
+                    cmd = new MySqlCommand(sql, dbcon, tx);
+                    cmd.Parameters.AddWithValue("?amount", amount);
+                    cmd.Parameters.AddWithValue("?user", receiverID);
+                    int receiverRows = cmd.ExecuteNonQuery();
+                    cmd.Dispose();
+
+                    // Transaktionsstatus auf "erledigt" (z.B. 1) setzen
+                    sql = $"UPDATE transactions SET status = 1 WHERE UUID = ?tranid";
+                    cmd = new MySqlCommand(sql, dbcon, tx);
+                    cmd.Parameters.AddWithValue("?tranid", transactionID.ToString());
+                    cmd.ExecuteNonQuery();
+                    cmd.Dispose();
+
+                    tx.Commit();
+                    m_log.Info($"[DoTransfer]: Transaction {transactionID} executed successfully.");
+                    return senderRows > 0 && receiverRows > 0;
+                }
+                catch (Exception ex)
+                {
+                    tx.Rollback();
+                    m_log.Error($"[DoTransfer]: Error during transfer: {ex}");
+                    return false;
+                }
+            }
+        }
+
+        public bool DoAddMoney(UUID transactionID)
+        {
+            // 1. Hole die Transaktion aus der Datenbank
+            string sql = "SELECT receiver, amount, status FROM transactions WHERE UUID = ?tranid";
+            MySqlCommand cmd = new MySqlCommand(sql, dbcon);
+            cmd.Parameters.AddWithValue("?tranid", transactionID.ToString());
+
+            string receiverID = null;
+            int amount = 0, status = 0;
+            using (var reader = cmd.ExecuteReader())
+            {
+                if (reader.Read())
+                {
+                    receiverID = reader.GetString("receiver");
+                    amount = reader.GetInt32("amount");
+                    status = reader.GetInt32("status");
+                }
+                else
+                {
+                    // Keine Transaktion gefunden
+                    m_log.Warn($"[DoAddMoney]: Transaction {transactionID} not found.");
+                    return false;
+                }
+            }
+            cmd.Dispose();
+
+            if (status != 0)
+            {
+                m_log.Warn($"[DoAddMoney]: Transaction {transactionID} already completed or invalid status.");
+                return false;
+            }
+
+            // 2. Geld hinzufügen (z.B. für Belohnungen, Käufe, Boni)
+            using (var tx = dbcon.BeginTransaction())
+            {
+                try
+                {
+                    // Hinzufügen beim Empfänger
+                    sql = $"UPDATE balances SET balance = balance + ?amount WHERE user = ?user";
+                    cmd = new MySqlCommand(sql, dbcon, tx);
+                    cmd.Parameters.AddWithValue("?amount", amount);
+                    cmd.Parameters.AddWithValue("?user", receiverID);
+                    int receiverRows = cmd.ExecuteNonQuery();
+                    cmd.Dispose();
+
+                    // Transaktionsstatus auf "erledigt" (z.B. 1) setzen
+                    sql = $"UPDATE transactions SET status = 1 WHERE UUID = ?tranid";
+                    cmd = new MySqlCommand(sql, dbcon, tx);
+                    cmd.Parameters.AddWithValue("?tranid", transactionID.ToString());
+                    cmd.ExecuteNonQuery();
+                    cmd.Dispose();
+
+                    tx.Commit();
+                    m_log.Info($"[DoAddMoney]: Transaction {transactionID} executed successfully.");
+                    return receiverRows > 0;
+                }
+                catch (Exception ex)
+                {
+                    tx.Rollback();
+                    m_log.Error($"[DoAddMoney]: Error during add money: {ex}");
+                    return false;
+                }
+            }
+        }
 
     }
 }
