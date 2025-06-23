@@ -213,6 +213,7 @@ internal class MoneyServerBase : BaseOpenSimServer, IMoneyServiceCore
     private string m_ApiKey = "";
     private string m_AllowedUser = "";
 
+
     // Netzwerk
     private string m_moneyServerIP = "";
 

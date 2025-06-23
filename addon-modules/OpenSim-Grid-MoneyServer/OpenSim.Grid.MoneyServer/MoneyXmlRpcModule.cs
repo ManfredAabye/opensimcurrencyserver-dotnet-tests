@@ -186,8 +186,8 @@ using static System.Collections.Specialized.BitVector32;
 //        private string m_scriptIPaddress = "127.0.0.1";
 
 //        // PHP settings
-//        private string m_scriptApiKey = "";       // API Key aus der INI
-//        private string m_scriptAllowedUser = "";  // AllowedUser aus der INI
+//        private string m_ApiKey = "";       // API Key aus der INI
+//        private string m_AllowedUser = "";  // AllowedUser aus der INI
 
 //        // HG settings
 //        private bool m_hg_enable = false;
@@ -303,8 +303,8 @@ namespace OpenSim.Grid.MoneyServer
         private string m_scriptIPaddress = "127.0.0.1";
 
         // API (JsonApi)
-        private string m_scriptApiKey = "";
-        private string m_scriptAllowedUser = "";
+        private string m_ApiKey = "";
+        private string m_AllowedUser = "";
 
         // Hypergrid-Einstellungen
         private bool m_hg_enable = true;
@@ -327,8 +327,9 @@ namespace OpenSim.Grid.MoneyServer
         private string m_BalanceMessageReceiveMoney = "Received L${0} from {1}.";
 
         // Debug & Testwerte
-        private bool m_DebugConsole = false;
-        private bool m_DebugFile = false;
+        //private bool m_DebugConsole = false;
+        //private bool m_DebugFile = false;
+
         private int m_realMoney = 1000;
         private int m_gameMoney = 10000;
 
@@ -406,8 +407,8 @@ namespace OpenSim.Grid.MoneyServer
         //    m_scriptAccessKey = m_server_config.GetString("MoneyScriptAccessKey", m_scriptAccessKey);
         //    m_scriptIPaddress = m_server_config.GetString("MoneyScriptIPaddress", m_scriptIPaddress);
 
-        //    m_scriptApiKey = m_server_config.GetString("ApiKey", m_scriptApiKey); // New feature
-        //    m_scriptAllowedUser = m_server_config.GetString("AllowedUser", m_scriptAllowedUser); // New feature
+        //    m_ApiKey = m_server_config.GetString("ApiKey", m_ApiKey); // New feature
+        //    m_AllowedUser = m_server_config.GetString("AllowedUser", m_AllowedUser); // New feature
 
         //    m_CalculateCurrency = m_server_config.GetInt("CalculateCurrency", m_CalculateCurrency); // New feature
         //    m_DebugConsole = m_server_config.GetBoolean("DebugConsole", m_DebugConsole); // New feature
@@ -544,8 +545,8 @@ namespace OpenSim.Grid.MoneyServer
             // [JsonApi]
             if (jsonConfig != null)
             {
-                m_scriptApiKey = jsonConfig.GetString("ApiKey", m_scriptApiKey);
-                m_scriptAllowedUser = jsonConfig.GetString("AllowedUser", m_scriptAllowedUser);
+                m_ApiKey = jsonConfig.GetString("ApiKey", m_ApiKey);
+                m_AllowedUser = jsonConfig.GetString("AllowedUser", m_AllowedUser);
             }
 
             // [Hypergrid]
@@ -617,7 +618,7 @@ namespace OpenSim.Grid.MoneyServer
             m_log.Info("[MONEY XMLRPC]: Registering landtool.php handlers.");
             m_httpServer.AddSimpleStreamHandler(new LandtoolStreamHandler("/landtool.php", LandtoolProcessPHP));
 
-            if (!string.IsNullOrWhiteSpace(m_scriptApiKey) && !string.IsNullOrWhiteSpace(m_scriptAllowedUser))
+            if (!string.IsNullOrWhiteSpace(m_ApiKey) && !string.IsNullOrWhiteSpace(m_AllowedUser))
             {
                 m_httpServer.AddSimpleStreamHandler(new JsonStreamHandler("/api/json", JsonApiProcess));
                 m_log.Info("[MONEY XMLRPC]: JSON API handler registered (/api/json).");
@@ -1867,10 +1868,10 @@ namespace OpenSim.Grid.MoneyServer
         //        string apiKeyFromRequest = json.TryGetProperty("apiKey", out var keyProp) ? keyProp.GetString() : "";
         //        string allowedUserFromRequest = json.TryGetProperty("allowedUser", out var userProp) ? userProp.GetString() : "";
 
-        //        if (string.IsNullOrWhiteSpace(m_scriptApiKey) ||
-        //            string.IsNullOrWhiteSpace(m_scriptAllowedUser) ||
-        //            apiKeyFromRequest != m_scriptApiKey ||
-        //            allowedUserFromRequest != m_scriptAllowedUser)
+        //        if (string.IsNullOrWhiteSpace(m_ApiKey) ||
+        //            string.IsNullOrWhiteSpace(m_AllowedUser) ||
+        //            apiKeyFromRequest != m_ApiKey ||
+        //            allowedUserFromRequest != m_AllowedUser)
         //        {
         //            httpResponse.StatusCode = 401;
         //            httpResponse.RawBuffer = Encoding.UTF8.GetBytes("{\"error\":\"Unauthorized\"}");
@@ -2068,10 +2069,10 @@ namespace OpenSim.Grid.MoneyServer
         //        // Authentifizierung prüfen
         //        if (!TryGetProperty(json, "apiKey", out string apiKeyFromRequest) ||
         //            !TryGetProperty(json, "allowedUser", out string allowedUserFromRequest) ||
-        //            string.IsNullOrWhiteSpace(m_scriptApiKey) ||
-        //            string.IsNullOrWhiteSpace(m_scriptAllowedUser) ||
-        //            apiKeyFromRequest != m_scriptApiKey ||
-        //            allowedUserFromRequest != m_scriptAllowedUser)
+        //            string.IsNullOrWhiteSpace(m_ApiKey) ||
+        //            string.IsNullOrWhiteSpace(m_AllowedUser) ||
+        //            apiKeyFromRequest != m_ApiKey ||
+        //            allowedUserFromRequest != m_AllowedUser)
         //        {
         //            SetJsonResponse(httpResponse, 401, new { error = "Unauthorized" });
         //            return;
@@ -2270,10 +2271,10 @@ namespace OpenSim.Grid.MoneyServer
                 bool allowedUserOk = TryGetProperty(json, "allowedUser", out allowedUserFromRequest);
 
                 if (!apiKeyOk || !allowedUserOk ||
-                    string.IsNullOrWhiteSpace(m_scriptApiKey) ||
-                    string.IsNullOrWhiteSpace(m_scriptAllowedUser) ||
-                    apiKeyFromRequest != m_scriptApiKey ||
-                    allowedUserFromRequest != m_scriptAllowedUser)
+                    string.IsNullOrWhiteSpace(m_ApiKey) ||
+                    string.IsNullOrWhiteSpace(m_AllowedUser) ||
+                    apiKeyFromRequest != m_ApiKey ||
+                    allowedUserFromRequest != m_AllowedUser)
                 {
                     m_log.Warn($"[JSON API] Authentifizierung fehlgeschlagen. apiKey: {apiKeyFromRequest}, allowedUser: {allowedUserFromRequest}");
                     SetJsonResponse(httpResponse, 401, new { error = "Unauthorized" });
