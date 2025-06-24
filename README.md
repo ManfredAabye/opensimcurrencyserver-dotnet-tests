@@ -16,3 +16,5 @@ To activate the API, both settings must be set:
 moneyserver_api.php funktioniert noch nicht vollständig, aber gibt schon Daten aus und meldet brav Fehler. 
 
 moneyserver_api.php is not yet fully functional, but it is already outputting data and reporting errors.
+
+Cashbook arbeitet work.
