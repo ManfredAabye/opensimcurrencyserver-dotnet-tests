@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>Cashbook Test</title>
+    <title>Cashbook</title>
     <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
 </head>
 <body class="w3-container">
@@ -12,7 +12,7 @@
     <form id="cashbookForm" class="w3-container" method="post" autocomplete="off">
         <label class="w3-text-grey">MoneyServer-URL:</label>
         <input class="w3-input w3-border" type="text" name="url" required
-               value="<?= htmlspecialchars($_POST['url'] ?? 'http://localhost:8008/api/json') ?>">
+               value="<?= htmlspecialchars($_POST['url'] ?? 'http://localhost:8008/api/cashbook') ?>">
 
         <label class="w3-text-grey">API Key:</label>
         <input class="w3-input w3-border" type="text" name="apiKey" required
@@ -77,6 +77,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['start'])) {
             echo '<th>Datum</th><th>Beschreibung</th><th>Einnahme</th><th>Ausgabe</th><th>Saldo</th>';
             echo '</tr>';
             foreach ($json['cashbook'] as $entry) {
+                // Case-insensitive Mapping
+                $entry = array_change_key_case($entry, CASE_LOWER);
                 echo '<tr>';
                 echo '<td>' . htmlspecialchars($entry['date'] ?? '') . '</td>';
                 echo '<td>' . htmlspecialchars($entry['description'] ?? '') . '</td>';
@@ -88,7 +90,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['start'])) {
             echo '</table></div>';
         } else {
             echo '<div class="w3-text-red">Fehler: ' . htmlspecialchars($json['error'] ?? 'Unbekannter Fehler oder ungültige Antwort') . '</div>';
-            echo '<pre class="w3-small">'.htmlspecialchars($result).'</pre>';
         }
     }
     echo '</div>';
