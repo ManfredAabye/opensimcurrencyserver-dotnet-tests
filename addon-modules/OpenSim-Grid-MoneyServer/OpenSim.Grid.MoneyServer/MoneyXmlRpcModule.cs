@@ -145,6 +145,8 @@ using static Mono.Security.X509.X520;
 using static OpenMetaverse.DllmapConfigHelper;
 using static System.Collections.Specialized.BitVector32;
 
+using System.Text.Json.Serialization;
+
 
 namespace OpenSim.Grid.MoneyServer
 {
@@ -1712,6 +1714,77 @@ namespace OpenSim.Grid.MoneyServer
 
         // ##################     handler         ##################
         #region handler
+
+
+        // Im Konstruktor oder Init registrieren:
+        // new JsonStreamHandler("/api/cashbook", CashbookRequestHandler);
+
+        private void CashbookRequestHandler(IOSHttpRequest req, IOSHttpResponse resp)
+        {
+            m_log.Info("[CASHBOOK HANDLER]: CashbookRequestHandler gestartet");
+
+            // Schritt 1: Request-Body einlesen
+            string requestBody;
+            using (var reader = new StreamReader(req.InputStream, Encoding.UTF8))
+            {
+                requestBody = reader.ReadToEnd();
+            }
+
+            // Schritt 2: JSON parsen
+            string userID = null;
+            int limit = 20;
+            try
+            {
+                using (JsonDocument doc = JsonDocument.Parse(requestBody))
+                {
+                    JsonElement root = doc.RootElement;
+                    if (root.TryGetProperty("userID", out JsonElement userIdProp))
+                        userID = userIdProp.GetString();
+                    if (root.TryGetProperty("limit", out JsonElement limitProp) && limitProp.TryGetInt32(out int l))
+                        limit = l;
+                }
+            }
+            catch (Exception ex)
+            {
+                resp.StatusCode = 400;
+                resp.RawBuffer = Encoding.UTF8.GetBytes("{\"success\":false,\"error\":\"Ungültiges JSON.\"}");
+                m_log.ErrorFormat("[CASHBOOK HANDLER]: JSON Fehler: {0}", ex.Message);
+                return;
+            }
+
+            // Schritt 3: Parameter validieren
+            if (string.IsNullOrWhiteSpace(userID))
+            {
+                resp.StatusCode = 400;
+                resp.RawBuffer = Encoding.UTF8.GetBytes("{\"success\":false,\"error\":\"Missing userID\"}");
+                return;
+            }
+
+            // Schritt 4: Cashbook abrufen (Service-Layer)
+            List<CashbookEntry> cashbook = null;
+            try
+            {
+                cashbook = m_moneyDBService.FetchCashbook(userID, limit);
+            }
+            catch (Exception ex)
+            {
+                resp.StatusCode = 500;
+                resp.RawBuffer = Encoding.UTF8.GetBytes("{\"success\":false,\"error\":\"Serverfehler bei Datenbankabfrage.\"}");
+                m_log.ErrorFormat("[CASHBOOK HANDLER]: DB Fehler: {0}", ex.Message);
+                return;
+            }
+
+            // Schritt 5: Antwort senden
+            var responseObj = new
+            {
+                success = true,
+                userID = userID,
+                cashbook = cashbook
+            };
+            string responseJson = JsonSerializer.Serialize(responseObj);
+            resp.StatusCode = 200;
+            resp.RawBuffer = Encoding.UTF8.GetBytes(responseJson);
+        }
 
         private void JsonApiProcess(IOSHttpRequest httpRequest, IOSHttpResponse httpResponse)
         {
@@ -4181,11 +4254,11 @@ namespace OpenSim.Grid.MoneyServer
 
 public class CashbookEntry
 {
-    public string Date { get; set; }          // z.B. "2025-06-23"
-    public string Description { get; set; }   // Beschreibung der Buchung
-    public int? Income { get; set; }          // Einnahmen in OS$, null wenn Ausgabe
-    public int? Expense { get; set; }         // Ausgaben in OS$, null wenn Einnahme
-    public int Balance { get; set; }          // Saldo nach Buchung
+    public string Date { get; set; }
+    public string Description { get; set; }
+    public int? Income { get; set; }
+    public int? Expense { get; set; }
+    public int Balance { get; set; }
 }
 
 public class JsonStreamHandler : CustomSimpleStreamHandler

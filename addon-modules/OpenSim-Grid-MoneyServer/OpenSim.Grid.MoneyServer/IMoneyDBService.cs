@@ -166,5 +166,7 @@ namespace OpenSim.Grid.MoneyServer
         bool ValidateTransfer(string secureCode, Guid transactionID);
         bool DoTransfer(Guid transactionID);
         bool DoAddMoney(Guid transactionID);
+
+        List<CashbookEntry> FetchCashbook(string userID, int limit);
     }
 }
