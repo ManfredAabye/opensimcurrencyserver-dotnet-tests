@@ -859,9 +859,9 @@ namespace OpenSim.Grid.MoneyServer
 
         public List<CashbookEntry> FetchCashbook(string userID, int limit)
         {
+            m_log.Info("[FetchCashbook] Datenbank geöffnet.");
             var cashbook = new List<CashbookEntry>();
             string query = "SELECT time, description, amount, sender, receiver FROM transactions WHERE sender = @userID OR receiver = @userID ORDER BY time ASC LIMIT @limit";
-
             var dbm = GetLockedConnection();
             int saldo = 0;
             try
@@ -897,6 +897,7 @@ namespace OpenSim.Grid.MoneyServer
                         }
                     }
                 }
+                m_log.Info($"[FetchCashbook] Datenbank ausgelesene Daten: {cashbook.Count} Einträge.");
             }
             finally
             {

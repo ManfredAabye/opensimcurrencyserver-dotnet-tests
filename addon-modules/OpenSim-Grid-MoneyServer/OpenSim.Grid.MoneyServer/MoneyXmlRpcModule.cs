@@ -410,6 +410,9 @@ namespace OpenSim.Grid.MoneyServer
             m_log.Info("[MONEY XMLRPC]: Registering landtool.php handlers.");
             m_httpServer.AddSimpleStreamHandler(new LandtoolStreamHandler("/landtool.php", LandtoolProcessPHP));
 
+            m_log.Info("[MONEY XMLRPC]: Registering cashbook handlers.");
+            m_httpServer.AddSimpleStreamHandler(new JsonStreamHandler("/api/cashbook", CashbookRequestHandler));
+
             if (!string.IsNullOrWhiteSpace(m_scriptApiKey) && !string.IsNullOrWhiteSpace(m_scriptAllowedUser))
             {
                 m_httpServer.AddSimpleStreamHandler(new JsonStreamHandler("/api/json", JsonApiProcess));
