@@ -774,78 +774,99 @@ namespace OpenSim.Grid.MoneyServer
                 return null;
             }
         }
-        //    public List<CashbookEntry> FetchCashbook(string userID, int limit)
+
+        //public List<CashbookEntry> FetchCashbook(string userID, int limit)
+        //{
+        //    var cashbook = new List<CashbookEntry>();
+
+        //    // Logging: Start der Methode
+        //    m_log.InfoFormat("[Cashbook] FetchCashbook gestartet mit userID='{0}', limit={1}", userID, limit);
+
+        //    string query = @"
+        //                    SELECT time, description, amount, sender, receiver
+        //                    FROM transactions
+        //                    WHERE sender = ?userID OR receiver = ?userID
+        //                    ORDER BY time ASC
+        //                    LIMIT ?limit
+        //                ";
+
+        //    var dbm = GetLockedConnection();
+        //    int saldo = 0;
+        //    try
         //    {
-        //        var cashbook = new List<CashbookEntry>();
-        //        string query = @"
-        //    SELECT timestamp, description, amount, sender, receiver
-        //    FROM transactions
-        //    WHERE sender = @userID OR receiver = @userID
-        //    ORDER BY timestamp ASC
-        //    LIMIT @limit
-        //";
-
-        //        var dbm = GetLockedConnection();
-        //        int saldo = 0;
-
-        //        try
+        //        //using (var cmd = new MySqlCommand(query, dbm.Manager.dbcon))
+        //        using (MySqlCommand cmd = new MySqlCommand(sql, dbm.Manager.dbcon))
         //        {
-        //            using (var cmd = new MySqlCommand(query, dbm.Manager.dbcon))
+        //            cmd.Parameters.AddWithValue("?userID", userID);
+        //            cmd.Parameters.AddWithValue("?limit", limit);
+
+        //            // Logging: Ausgeführtes SQL und Parameter
+        //            m_log.InfoFormat("[Cashbook] SQL: {0}", query.Replace("\n", " "));
+        //            m_log.InfoFormat("[Cashbook] SQL-Parameter: userID='{0}', limit={1}", userID, limit);
+
+        //            using (var reader = cmd.ExecuteReader())
         //            {
-        //                cmd.Parameters.AddWithValue("@userID", userID);
-        //                cmd.Parameters.AddWithValue("@limit", limit);
-
-        //                using (var reader = cmd.ExecuteReader())
+        //                int rowCount = 0;
+        //                while (reader.Read())
         //                {
-        //                    while (reader.Read())
+        //                    int unixTime = reader.GetInt32("time");
+        //                    string date = DateTimeOffset.FromUnixTimeSeconds(unixTime).ToString("yyyy-MM-dd");
+        //                    string description = !reader.IsDBNull(reader.GetOrdinal("description")) ? reader.GetString("description") : "";
+        //                    int amount = reader.GetInt32("amount");
+        //                    string sender = reader.GetString("sender");
+        //                    string receiver = reader.GetString("receiver");
+
+        //                    bool isIncome = userID == receiver;
+        //                    bool isExpense = userID == sender;
+        //                    saldo += (isIncome ? amount : 0) - (isExpense ? amount : 0);
+
+        //                    cashbook.Add(new CashbookEntry
         //                    {
-        //                        int amount = reader.GetInt32("amount");
-        //                        string sender = reader.GetString("sender");
-        //                        string receiver = reader.GetString("receiver");
-        //                        string description = !reader.IsDBNull(reader.GetOrdinal("description")) ? reader.GetString("description") : "";
+        //                        Date = date,
+        //                        Description = description,
+        //                        Income = isIncome ? amount : (int?)null,
+        //                        Expense = isExpense ? amount : (int?)null,
+        //                        Balance = saldo
+        //                    });
 
-        //                        string date = reader.GetDateTime("timestamp").ToString("yyyy-MM-dd");
+        //                    // Logging: Jede Zeile
+        //                    m_log.InfoFormat(
+        //                        "[Cashbook] Row {0}: date={1}, desc={2}, income={3}, expense={4}, balance={5}, sender={6}, receiver={7}",
+        //                        rowCount, date, description, isIncome ? amount.ToString() : "-", isExpense ? amount.ToString() : "-", saldo, sender, receiver);
 
-        //                        bool isIncome = userID == receiver;
-        //                        bool isExpense = userID == sender;
-
-        //                        saldo += (isIncome ? amount : 0) - (isExpense ? amount : 0);
-
-        //                        cashbook.Add(new CashbookEntry
-        //                        {
-        //                            Date = date,
-        //                            Description = description,
-        //                            Income = isIncome ? amount : (int?)null,
-        //                            Expense = isExpense ? amount : (int?)null,
-        //                            Balance = saldo
-        //                        });
-        //                    }
+        //                    rowCount++;
         //                }
+        //                m_log.InfoFormat("[Cashbook] Gesamt: {0} Zeile(n) gefunden.", rowCount);
         //            }
         //        }
-        //        finally
-        //        {
-        //            dbm.Release();
-        //        }
-        //        return cashbook;
         //    }
+        //    catch (Exception ex)
+        //    {
+        //        m_log.ErrorFormat("[Cashbook] Exception: {0}", ex);
+        //        throw;
+        //    }
+        //    finally
+        //    {
+        //        dbm.Release();
+        //        m_log.Info("[Cashbook] DB-Verbindung wieder freigegeben");
+        //    }
+        //    return cashbook;
+        //}
+
+        /// <summary>Does the transfer.</summary>
+        /// <param name="transactionUUID">The transaction UUID.</param>
+        /// 
 
         public List<CashbookEntry> FetchCashbook(string userID, int limit)
         {
             var cashbook = new List<CashbookEntry>();
-            string query = @"
-                SELECT time, description, amount, sender, receiver
-                FROM transactions
-                WHERE sender = @userID OR receiver = @userID
-                ORDER BY time ASC
-                LIMIT @limit
-            ";
+            string query = "SELECT time, description, amount, sender, receiver FROM transactions WHERE sender = @userID OR receiver = @userID ORDER BY time ASC LIMIT @limit";
 
             var dbm = GetLockedConnection();
             int saldo = 0;
             try
             {
-                using (var cmd = new MySqlCommand(query, dbm.Manager.dbcon))
+                using (MySqlCommand cmd = new MySqlCommand(query, dbm.Manager.dbcon))
                 {
                     cmd.Parameters.AddWithValue("@userID", userID);
                     cmd.Parameters.AddWithValue("@limit", limit);
@@ -884,8 +905,7 @@ namespace OpenSim.Grid.MoneyServer
             return cashbook;
         }
 
-        /// <summary>Does the transfer.</summary>
-        /// <param name="transactionUUID">The transaction UUID.</param>
+
         public bool DoTransfer(UUID transactionUUID)
         {
             MySQLSuperManager dbm = GetLockedConnection();
@@ -1251,7 +1271,7 @@ namespace OpenSim.Grid.MoneyServer
                 return false;
             }
         }
-
+        
         public void InitializeUserCurrency(string agentId)
         {
             m_log.InfoFormat("[INITIALIZE USER CURRENCY]: Initializing currency for new user: {0}", agentId);
