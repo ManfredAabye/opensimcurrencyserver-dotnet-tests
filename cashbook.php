@@ -45,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['start'])) {
     $limit       = isset($_POST['limit']) ? intval($_POST['limit']) : 20;
 
     $data = [
-        "method"      => "getCashbook",
+        "action"      => "getCashbook",
         "apiKey"      => $apiKey,
         "allowedUser" => $allowedUser,
         "userID"      => $userID,
