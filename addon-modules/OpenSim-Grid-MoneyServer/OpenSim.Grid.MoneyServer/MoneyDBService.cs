@@ -774,20 +774,75 @@ namespace OpenSim.Grid.MoneyServer
                 return null;
             }
         }
+        //    public List<CashbookEntry> FetchCashbook(string userID, int limit)
+        //    {
+        //        var cashbook = new List<CashbookEntry>();
+        //        string query = @"
+        //    SELECT timestamp, description, amount, sender, receiver
+        //    FROM transactions
+        //    WHERE sender = @userID OR receiver = @userID
+        //    ORDER BY timestamp ASC
+        //    LIMIT @limit
+        //";
+
+        //        var dbm = GetLockedConnection();
+        //        int saldo = 0;
+
+        //        try
+        //        {
+        //            using (var cmd = new MySqlCommand(query, dbm.Manager.dbcon))
+        //            {
+        //                cmd.Parameters.AddWithValue("@userID", userID);
+        //                cmd.Parameters.AddWithValue("@limit", limit);
+
+        //                using (var reader = cmd.ExecuteReader())
+        //                {
+        //                    while (reader.Read())
+        //                    {
+        //                        int amount = reader.GetInt32("amount");
+        //                        string sender = reader.GetString("sender");
+        //                        string receiver = reader.GetString("receiver");
+        //                        string description = !reader.IsDBNull(reader.GetOrdinal("description")) ? reader.GetString("description") : "";
+
+        //                        string date = reader.GetDateTime("timestamp").ToString("yyyy-MM-dd");
+
+        //                        bool isIncome = userID == receiver;
+        //                        bool isExpense = userID == sender;
+
+        //                        saldo += (isIncome ? amount : 0) - (isExpense ? amount : 0);
+
+        //                        cashbook.Add(new CashbookEntry
+        //                        {
+        //                            Date = date,
+        //                            Description = description,
+        //                            Income = isIncome ? amount : (int?)null,
+        //                            Expense = isExpense ? amount : (int?)null,
+        //                            Balance = saldo
+        //                        });
+        //                    }
+        //                }
+        //            }
+        //        }
+        //        finally
+        //        {
+        //            dbm.Release();
+        //        }
+        //        return cashbook;
+        //    }
+
         public List<CashbookEntry> FetchCashbook(string userID, int limit)
         {
             var cashbook = new List<CashbookEntry>();
             string query = @"
-        SELECT timestamp, description, amount, sender, receiver
-        FROM transactions
-        WHERE sender = @userID OR receiver = @userID
-        ORDER BY timestamp ASC
-        LIMIT @limit
-    ";
+                SELECT time, description, amount, sender, receiver
+                FROM transactions
+                WHERE sender = @userID OR receiver = @userID
+                ORDER BY time ASC
+                LIMIT @limit
+            ";
 
             var dbm = GetLockedConnection();
             int saldo = 0;
-
             try
             {
                 using (var cmd = new MySqlCommand(query, dbm.Manager.dbcon))
@@ -799,16 +854,15 @@ namespace OpenSim.Grid.MoneyServer
                     {
                         while (reader.Read())
                         {
+                            int unixTime = reader.GetInt32("time");
+                            string date = DateTimeOffset.FromUnixTimeSeconds(unixTime).ToString("yyyy-MM-dd");
+                            string description = !reader.IsDBNull(reader.GetOrdinal("description")) ? reader.GetString("description") : "";
                             int amount = reader.GetInt32("amount");
                             string sender = reader.GetString("sender");
                             string receiver = reader.GetString("receiver");
-                            string description = !reader.IsDBNull(reader.GetOrdinal("description")) ? reader.GetString("description") : "";
-
-                            string date = reader.GetDateTime("timestamp").ToString("yyyy-MM-dd");
 
                             bool isIncome = userID == receiver;
                             bool isExpense = userID == sender;
-
                             saldo += (isIncome ? amount : 0) - (isExpense ? amount : 0);
 
                             cashbook.Add(new CashbookEntry
